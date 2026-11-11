@@ -293,12 +293,37 @@ foreach ($r in $appxRows) {
     if (-not $PSCmdlet.ShouldProcess($r.ItemName, 'Remove AppX package (all users + provisioned)')) { Write-Change $r.Id 'Appx' $r.ItemName '' $r.State 'removed' 'WhatIf' $false; continue }
     $errs = @()
     foreach ($pkg in @(Get-AppxPackage -AllUsers -Name $r.ItemName -ErrorAction SilentlyContinue)) {
-        try { Remove-AppxPackage -Package $pkg.PackageFullName -AllUsers -ErrorAction Stop } catch { $errs += $_.Exception.Message }
+        try { Remove-AppxPackage -Package $pkg.PackageFullName -AllUsers -ErrorAction Stop; continue } catch {}
+        # -AllUsers fails (often 0x80070002) when a stale or deleted profile still has the package registered.
+        # Fall back to removing it user by user.
+        foreach ($u in @($pkg.PackageUserInformation)) {
+            if ("$($u.InstallState)" -ne 'Installed') { continue }
+            $sid = "$($u.UserSecurityId.Sid)"
+            try {
+                if ($sid -eq $id.User.Value) { Remove-AppxPackage -Package $pkg.PackageFullName -ErrorAction Stop }
+                else { Remove-AppxPackage -Package $pkg.PackageFullName -User $sid -ErrorAction Stop }
+            } catch { }
+        }
     }
     foreach ($pp in @(Get-AppxProvisionedPackage -Online | Where-Object DisplayName -eq $r.ItemName)) {
-        try { Remove-AppxProvisionedPackage -Online -PackageName $pp.PackageName -ErrorAction Stop | Out-Null } catch { $errs += $_.Exception.Message }
+        try { Remove-AppxProvisionedPackage -Online -PackageName $pp.PackageName -ErrorAction Stop | Out-Null } catch { $errs += "provisioned: $(($_.Exception.Message -split "`n")[0])" }
     }
-    $res = if ($errs) { "CHECK: $($errs -join ' / ')" } else { 'OK' }
+    # What's left? Name each user that still has it; a SID that won't resolve is a deleted account.
+    $left = @()
+    foreach ($pkg in @(Get-AppxPackage -AllUsers -Name $r.ItemName -ErrorAction SilentlyContinue)) {
+        foreach ($u in @($pkg.PackageUserInformation)) {
+            if ("$($u.InstallState)" -ne 'Installed') { continue }
+            $sid = "$($u.UserSecurityId.Sid)"
+            $acct = try { ([Security.Principal.SecurityIdentifier]$sid).Translate([Security.Principal.NTAccount]).Value } catch { $null }
+            $left += [pscustomobject]@{ Sid = $sid; Account = $acct }
+        }
+    }
+    $live  = @($left | Where-Object { $_.Account })
+    $stale = @($left | Where-Object { -not $_.Account })
+    $res = if ($live.Count -gt 0) { "CHECK: still installed for $(($live.Account | Sort-Object -Unique) -join ', ')" }
+           elseif ($stale.Count -gt 0) { "OK (removed for all existing users; stale registration left for deleted account $(($stale.Sid | Sort-Object -Unique) -join ', '))" }
+           else { 'OK' }
+    if ($errs) { $res = "$res; CHECK: $($errs -join ' / ')" }
     Write-Change $r.Id 'Appx' $r.ItemName '' $r.State 'removed' $res $false
 }
 
@@ -349,20 +374,42 @@ if ($wgRemove.Count + $wgUpdate.Count -gt 0) {
         Write-Warning 'winget.exe not found - skipping. Install/update "App Installer" from the Microsoft Store.'
         foreach ($r in $wgRemove + $wgUpdate) { Write-Change $r.Id 'Winget' $r.ItemName '' '' $r.Action 'FAILED: winget.exe not found' $false }
     } else {
+        $WingetHints = @{
+            '-1978335107' = 'installed per-user; winget will not remove it from an admin session. Run in a NON-admin PowerShell: winget uninstall --id {0} -e'
+            '-1978335226' = 'the package installer itself failed (its exit code is printed above; 1223 = cancelled, usually because the app is running - quit it from the system tray and retry)'
+            '-1978335189' = 'no applicable upgrade found (already current, or installed version unknown)'
+            '-2147012889' = 'network/DNS error reaching the package source - retry later'
+        }
+        function Invoke-WingetRow {
+            param($Row, [ValidateSet('upgrade', 'uninstall')]$Verb)
+            $src = if ($Row.State -match 'source=(\S+)') { $Matches[1] } else { 'winget' }
+            $wgArgs = @($Verb, '--id', $Row.ItemName, '--exact', '--silent', '--source', $src, '--accept-source-agreements', '--disable-interactivity')
+            if ($Verb -eq 'upgrade') {
+                $wgArgs += '--accept-package-agreements'
+                if ($Row.Detail -match '^Unknown') { $wgArgs += '--include-unknown' }
+            }
+            for ($try = 1; $try -le 2; $try++) {
+                & $winget @wgArgs | Out-Host
+                $code = $LASTEXITCODE
+                if ($code -ne -2147012889 -or $try -eq 2) { break }
+                Write-Host '   Network error - retrying in 15 s...' -ForegroundColor Yellow
+                Start-Sleep -Seconds 15
+            }
+            if ($code -eq 0) { return 'OK' }
+            $hint = $WingetHints["$code"]
+            if ($hint) { return ("CHECK (exit $code): " + ($hint -f $Row.ItemName)) }
+            return "CHECK (exit $code)"
+        }
         foreach ($r in $wgRemove) {
             if ($PSCmdlet.ShouldProcess("$($r.Name) [$($r.ItemName)]", 'winget uninstall')) {
                 Write-Host "   Uninstalling $($r.Name)..."
-                & $winget uninstall --id $r.ItemName --exact --silent --accept-source-agreements --disable-interactivity | Out-Host
-                $code = $LASTEXITCODE
-                Write-Change $r.Id 'Winget' $r.ItemName 'Installed' $r.Detail 'uninstalled' $(if ($code -eq 0) { 'OK' } else { "CHECK (exit $code)" }) $false
+                Write-Change $r.Id 'Winget' $r.ItemName 'Installed' $r.Detail 'uninstalled' (Invoke-WingetRow $r 'uninstall') $false
             } else { Write-Change $r.Id 'Winget' $r.ItemName 'Installed' $r.Detail 'uninstall' 'WhatIf' $false }
         }
         foreach ($r in $wgUpdate) {
             if ($PSCmdlet.ShouldProcess("$($r.Name) [$($r.ItemName)]", "winget upgrade $($r.Detail)")) {
                 Write-Host "   Upgrading $($r.Name) ($($r.Detail))..."
-                & $winget upgrade --id $r.ItemName --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity | Out-Host
-                $code = $LASTEXITCODE
-                Write-Change $r.Id 'Winget' $r.ItemName 'Version' $r.Detail 'upgraded' $(if ($code -eq 0) { 'OK' } else { "CHECK (exit $code)" }) $false
+                Write-Change $r.Id 'Winget' $r.ItemName 'Version' $r.Detail 'upgraded' (Invoke-WingetRow $r 'upgrade') $false
             } else { Write-Change $r.Id 'Winget' $r.ItemName 'Version' $r.Detail 'upgrade' 'WhatIf' $false }
         }
     }

@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.4 - 2026-11-11
+
+### Fixed
+- **Act / AppX:** `Remove-AppxPackage -AllUsers` fails with `0x80070002` when a stale or deleted user profile still has the package registered. The script now falls back to removing the package user by user. The result names any account that still has it, and reports a registration left behind by a deleted account (a SID that won't resolve to an account name) as OK with a note rather than a failure.
+- **Act / winget:**
+  - Every call now uses `--source <source from the report>` (normally `winget`), so winget no longer searches the Microsoft Store source. That search is where transient DNS failures (`0x80072EE7`) were happening.
+  - Rows whose installed version is `Unknown` get `--include-unknown`.
+  - Network errors are retried once after 15 s.
+  - Known winget exit codes now come with a plain-English hint in `ChangeLog.csv`, including the fix for per-user installs that can't be removed from an admin session (`0x8A15007D`).
+
 ## 1.0.3 - 2026-11-11
 
 ### Fixed

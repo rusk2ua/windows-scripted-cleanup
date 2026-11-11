@@ -29,6 +29,18 @@ isn't an admin, temporarily make it one.
 - MSI exit `1603`: generic failure. See `%TEMP%\MSI*.log`, or retry after a reboot.
 - MSI exit `1618`: another install was running. Reboot and re-run. Already-removed items log as `OK (already gone)`.
 
+### Store app removal shows `0x80070002`
+`Remove-AppxPackage -AllUsers` trips over a package registration that belongs to a stale or deleted user profile. Since v1.0.4 the script falls back to removing the package user by user and says who still has it. A registration left behind by a **deleted account** can't be removed, and it's harmless: no one can launch it.
+
+### winget: "The package installed for user scope cannot be uninstalled when running with administrator privileges"
+The app was installed per-user, Zoom being the usual example. Open a **normal, non-admin** PowerShell and run `winget uninstall --id <Id> -e`.
+
+### winget: "Installer failed with exit code: 1223"
+1223 means the installer was cancelled, usually because the app was running. Quit it (check the system tray), then run `winget upgrade --id <Id> -e`.
+
+### winget: `0x80072EE7` / "server name or address could not be resolved"
+A DNS hiccup while winget was contacting its package source. Since v1.0.4 the script only uses the `winget` source and retries once. If it still fails, check your connection and re-run.
+
 ### OneDrive was skipped
 That's the Known Folder Move blocker. See [office365-removal.md](office365-removal.md#onedrive-known-folder-move-the-gotcha).
 
