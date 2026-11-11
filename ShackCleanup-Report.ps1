@@ -112,6 +112,17 @@ $script:NextId = 1
 function Add-Finding {
     param($Category, $Type, $Name, $Location = '', $ItemName = '', $Detail = '', $Company = '',
           $State = '', $Flag = 'Info', $Recommendation = 'Keep', $Note = '')
+    # Already in the target state? Then there's nothing to do - recommend Keep so it doesn't show up as an action.
+    if ($Recommendation -eq 'Disable' -and "$State" -match '^Disabled') {
+        $Recommendation = 'Keep'
+        $Note = (@($Note, 'Already disabled') | Where-Object { $_ }) -join ' - '
+    }
+    if ($Recommendation -eq 'Apply' -and $Type -eq 'Registry' -and $Detail) {
+        $rp  = $Detail -split '\|'
+        $cur = try { (Get-ItemProperty -Path $rp[0] -Name $rp[1] -ErrorAction Stop).($rp[1]) } catch { $null }
+        if (-not $State) { $State = "current=$(if ($null -eq $cur) { '<not set>' } else { $cur })" }
+        if ($null -ne $cur -and "$cur" -eq $rp[3]) { $Recommendation = 'Keep'; $Note = 'Already set' }
+    }
     $action = if ($Recommendation -in 'Disable','Remove','Apply','Upgrade') { $Recommendation } else { '' }
     $Findings.Add([pscustomobject][ordered]@{
         Id = $script:NextId; Category = $Category; Type = $Type; Name = $Name; Location = $Location

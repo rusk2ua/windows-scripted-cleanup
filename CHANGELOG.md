@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.5 - 2026-11-11
+
+### Fixed
+- **Report:** items that were already in their target state were still recommended for action, so a second run of the Act script selected dozens of rows that only logged `OK (already)`. This covered disabled tasks, disabled startup entries, disabled services, and Office/OneDrive/Teams policy values that were already set. These rows are now recommended `Keep`, with an "Already disabled" or "Already set" note, so re-runs only select what's actually left to do.
+
 ## 1.0.4 - 2026-11-11
 
 ### Fixed
