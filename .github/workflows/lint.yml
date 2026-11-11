@@ -1,0 +1,31 @@
+name: PowerShell lint
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse check (Windows PowerShell 5.1)
+        shell: powershell
+        run: |
+          $failed = $false
+          foreach ($f in Get-ChildItem -Filter *.ps1) {
+            $t = $null; $e = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$t, [ref]$e)
+            if ($e) { $failed = $true; $e | ForEach-Object { Write-Host "::error file=$($f.Name),line=$($_.Extent.StartLineNumber)::$($_.Message)" } }
+            else { Write-Host "$($f.Name): OK" }
+          }
+          if ($failed) { exit 1 }
+
+      - name: PSScriptAnalyzer
+        shell: powershell
+        run: |
+          Install-Module PSScriptAnalyzer -Scope CurrentUser -Force
+          $r = Invoke-ScriptAnalyzer -Path . -Severity Error
+          $r | Format-Table -AutoSize
+          if ($r) { exit 1 }

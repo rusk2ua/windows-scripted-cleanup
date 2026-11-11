@@ -1,0 +1,7 @@
+# Script output - contains machine-specific inventory, never commit
+Report-*/
+Act-*/
+WhatIf-*/
+*.csv
+*.reg
+Transcript.txt
