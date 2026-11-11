@@ -17,7 +17,8 @@ Anything matching these is tagged `StationCritical` / `Keep`:
 
 | Area | Matches |
 |---|---|
-| Logging / contesting | N1MM, Win-Test, DXLab (Commander, DXKeeper, SpotCollector), Log4OM, Ham Radio Deluxe / HRD, RUMlog, N3FJP |
+| Logging / contesting | N1MM, DXLog.net, Win-Test, DXLab (Commander, DXKeeper, SpotCollector), Log4OM, Ham Radio Deluxe / HRD, RUMlog, N3FJP |
+| SDR receive | HDSDR, SDR#, SDR Console, SDRuno, SDR-Radio |
 | Digital modes | WSJT-X, JTDX, JTAlert, GridTracker, fldigi, flrig, MMTTY, 2Tone, skimmer software |
 | Rig control / radios | OmniRig, FlexRadio / SmartSDR, Icom (RS-BA1, RS-MS1), Elecraft, Yaesu, Kenwood |
 | Interfaces / SO2R | microHAM, SO2R, OTRSP, RemoteRig, WinKey / K1EL |

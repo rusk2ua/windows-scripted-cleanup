@@ -55,7 +55,7 @@ if ($consoleUser -and ($consoleUser -ne $id.Name)) {
 
 # ---------------------------------------------------------------- classification rules
 # Station-critical software: never recommended for removal/disable.
-$StationPattern = '(?i)n1mm|omni-?rig|wsjt|jtdx|jtalert|gridtracker|flexradio|smartsdr|\bicom\b|rs-ba1|rs-ms1|ftdi|silabs|silicon lab|cp210|prolific|dxlab|dxkeeper|spotcollector|log4om|ham radio deluxe|\bhrd\b|microham|so2r|otrsp|remoterig|elecraft|yaesu|kenwood|tqsl|trustedqsl|lotw|vspe|com0com|virtual serial|vb-audio|voicemeeter|mmtty|2tone|win-?test|skimmer|meinberg|ntpd|\bntp\b|dimension ?4|bkttimesync|nettime|rumlog|n3fjp|winkey|k1el|fldigi|flrig|pstrotator|\bspid\b|green ?heron|rtkaud|realtek audio'
+$StationPattern = '(?i)n1mm|omni-?rig|wsjt|jtdx|jtalert|gridtracker|flexradio|smartsdr|\bicom\b|rs-ba1|rs-ms1|ftdi|silabs|silicon lab|cp210|prolific|dxlab|dxkeeper|spotcollector|log4om|ham radio deluxe|\bhrd\b|microham|so2r|otrsp|remoterig|elecraft|yaesu|kenwood|tqsl|trustedqsl|lotw|vspe|com0com|virtual serial|vb-audio|voicemeeter|mmtty|2tone|win-?test|skimmer|meinberg|ntpd|\bntp\b|dimension ?4|bkttimesync|nettime|rumlog|n3fjp|winkey|k1el|fldigi|flrig|dxlog|hdsdr|sdrsharp|sdr console|sdruno|sdr-?radio|pstrotator|\bspid\b|green ?heron|rtkaud|realtek audio'
 
 # Anything tied to Office 365 / OneDrive / Teams / Skype / Outlook.
 $O365Pattern = '(?i)clicktorun|click-to-run|officec2r|officeclicktorun|office ?16|microsoft office|microsoft 365|office automatic updates|office feature updates|officetelemetry|office performance monitor|office background|onedrive|\bteams\b|msteams|skype|outlook|onenote|officehub'
@@ -412,41 +412,41 @@ Add-Finding -Category 'Office365' -Type 'Registry' -Name 'Block Teams machine-wi
 # ---------------------------------------------------------------- 7. telemetry policy (Required level only)
 Write-Host '[7/8] Telemetry settings...' -ForegroundColor Cyan
 $tel = @(
-    @('Diagnostic data = Required only',              'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection|AllowTelemetry|DWord|1')
-    @('No device name in diagnostic data',            'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection|AllowDeviceNameInTelemetry|DWord|0')
-    @('Limit diagnostic log collection',              'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection|LimitDiagnosticLogCollection|DWord|1')
-    @('Limit memory dump upload',                     'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection|LimitDumpCollection|DWord|1')
-    @('No feedback prompts',                          'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection|DoNotShowFeedbackNotifications|DWord|1')
-    @('Customer Experience Improvement Program off',  'HKLM:\SOFTWARE\Policies\Microsoft\SQMClient\Windows|CEIPEnable|DWord|0')
-    @('Application telemetry (AIT) off',              'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppCompat|AITEnable|DWord|0')
-    @('Inventory collector off',                      'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppCompat|DisableInventory|DWord|1')
-    @('Error reports: no extra data sent',            'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting|DontSendAdditionalData|DWord|1')
-    @('Advertising ID off (policy)',                  'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo|DisabledByGroupPolicy|DWord|1')
-    @('Activity history off',                         'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System|EnableActivityFeed|DWord|0')
-    @('Activity history: do not publish',             'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System|PublishUserActivities|DWord|0')
-    @('Activity history: do not upload',              'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System|UploadUserActivities|DWord|0')
-    @('Cortana off',                                  'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search|AllowCortana|DWord|0')
-    @('No web/Bing results in Start search',          'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search|DisableWebSearch|DWord|1')
-    @('No web/Bing results in Start search (2)',      'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search|ConnectedSearchUseWeb|DWord|0')
-    @('No search box suggestions',                    'HKCU:\Software\Policies\Microsoft\Windows\Explorer|DisableSearchBoxSuggestions|DWord|1')
-    @('News and Interests (taskbar feed) off',        'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds|EnableFeeds|DWord|0')
-    @('Delivery Optimization: no peer-to-peer upload','HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization|DODownloadMode|DWord|0')
-    @('Handwriting data sharing off',                 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\TabletPC|PreventHandwritingDataSharing|DWord|1')
-    @('Input personalization off',                    'HKLM:\SOFTWARE\Policies\Microsoft\InputPersonalization|AllowInputPersonalization|DWord|0')
-    @('Tailored experiences off',                     'HKCU:\Software\Microsoft\Windows\CurrentVersion\Privacy|TailoredExperiencesWithDiagnosticDataEnabled|DWord|0')
-    @('Advertising ID off (user)',                    'HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo|Enabled|DWord|0')
-    @('Feedback frequency = never',                   'HKCU:\Software\Microsoft\Siuf\Rules|NumberOfSIUFInPeriod|DWord|0')
-    @('No silently installed suggested apps',         'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SilentInstalledAppsEnabled|DWord|0')
-    @('No Start menu suggestions',                    'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SystemPaneSuggestionsEnabled|DWord|0')
-    @('No tips/tricks notifications',                 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SoftLandingEnabled|DWord|0')
-    @('No preinstalled promo apps',                   'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|PreInstalledAppsEnabled|DWord|0')
-    @('No OEM promo apps',                            'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|OemPreInstalledAppsEnabled|DWord|0')
+    @{ N = 'Diagnostic data = Required only'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection|AllowTelemetry|DWord|1' }
+    @{ N = 'No device name in diagnostic data'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection|AllowDeviceNameInTelemetry|DWord|0' }
+    @{ N = 'Limit diagnostic log collection'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection|LimitDiagnosticLogCollection|DWord|1' }
+    @{ N = 'Limit memory dump upload'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection|LimitDumpCollection|DWord|1' }
+    @{ N = 'No feedback prompts'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection|DoNotShowFeedbackNotifications|DWord|1' }
+    @{ N = 'Customer Experience Improvement Program off'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\SQMClient\Windows|CEIPEnable|DWord|0' }
+    @{ N = 'Application telemetry (AIT) off'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppCompat|AITEnable|DWord|0' }
+    @{ N = 'Inventory collector off'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AppCompat|DisableInventory|DWord|1' }
+    @{ N = 'Error reports: no extra data sent'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Error Reporting|DontSendAdditionalData|DWord|1' }
+    @{ N = 'Advertising ID off (policy)'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\AdvertisingInfo|DisabledByGroupPolicy|DWord|1' }
+    @{ N = 'Activity history off'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System|EnableActivityFeed|DWord|0' }
+    @{ N = 'Activity history: do not publish'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System|PublishUserActivities|DWord|0' }
+    @{ N = 'Activity history: do not upload'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\System|UploadUserActivities|DWord|0' }
+    @{ N = 'Cortana off'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search|AllowCortana|DWord|0' }
+    @{ N = 'No web/Bing results in Start search'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search|DisableWebSearch|DWord|1' }
+    @{ N = 'No web/Bing results in Start search (2)'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search|ConnectedSearchUseWeb|DWord|0' }
+    @{ N = 'No search box suggestions'; D = 'HKCU:\Software\Policies\Microsoft\Windows\Explorer|DisableSearchBoxSuggestions|DWord|1' }
+    @{ N = 'News and Interests (taskbar feed) off'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Feeds|EnableFeeds|DWord|0' }
+    @{ N = 'Delivery Optimization: no peer-to-peer upload'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\DeliveryOptimization|DODownloadMode|DWord|0' }
+    @{ N = 'Handwriting data sharing off'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\TabletPC|PreventHandwritingDataSharing|DWord|1' }
+    @{ N = 'Input personalization off'; D = 'HKLM:\SOFTWARE\Policies\Microsoft\InputPersonalization|AllowInputPersonalization|DWord|0' }
+    @{ N = 'Tailored experiences off'; D = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Privacy|TailoredExperiencesWithDiagnosticDataEnabled|DWord|0' }
+    @{ N = 'Advertising ID off (user)'; D = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo|Enabled|DWord|0' }
+    @{ N = 'Feedback frequency = never'; D = 'HKCU:\Software\Microsoft\Siuf\Rules|NumberOfSIUFInPeriod|DWord|0' }
+    @{ N = 'No silently installed suggested apps'; D = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SilentInstalledAppsEnabled|DWord|0' }
+    @{ N = 'No Start menu suggestions'; D = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SystemPaneSuggestionsEnabled|DWord|0' }
+    @{ N = 'No tips/tricks notifications'; D = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|SoftLandingEnabled|DWord|0' }
+    @{ N = 'No preinstalled promo apps'; D = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|PreInstalledAppsEnabled|DWord|0' }
+    @{ N = 'No OEM promo apps'; D = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|OemPreInstalledAppsEnabled|DWord|0' }
 )
 foreach ($t in $tel) {
-    $parts = $t[1] -split '\|'
+    $parts = $t.D -split '\|'
     $cur = try { (Get-ItemProperty -Path $parts[0] -Name $parts[1] -ErrorAction Stop).($parts[1]) } catch { '<not set>' }
     $rec = if ("$cur" -eq $parts[3]) { 'Keep' } else { 'Apply' }
-    Add-Finding -Category 'Telemetry' -Type 'Registry' -Name $t[0] -Detail $t[1] -Company 'Windows' -State "current=$cur" `
+    Add-Finding -Category 'Telemetry' -Type 'Registry' -Name $t.N -Detail $t.D -Company 'Windows' -State "current=$cur" `
         -Flag 'PhonesHome' -Recommendation $rec -Note $(if ($rec -eq 'Keep') { 'Already set' } else { '' })
 }
 

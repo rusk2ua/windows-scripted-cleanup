@@ -43,6 +43,10 @@ if (-not ([Security.Principal.WindowsPrincipal]$id).IsInRole([Security.Principal
 if (-not (Test-Path $FindingsCsv)) { Write-Error "Not found: $FindingsCsv"; exit 1 }
 
 $dry    = [bool]$WhatIfPreference
+# Pre-load modules with WhatIf off; otherwise -WhatIf leaks into their alias setup and prints noise
+$savedWhatIf = $WhatIfPreference; $WhatIfPreference = $false
+Import-Module CimCmdlets, ScheduledTasks, Appx -ErrorAction SilentlyContinue
+$WhatIfPreference = $savedWhatIf
 $stamp  = Get-Date -Format 'yyyyMMdd-HHmmss'
 $OutDir = Join-Path (Split-Path $FindingsCsv -Parent) $(if ($dry) { "WhatIf-$stamp" } else { "Act-$stamp" })
 New-Item -ItemType Directory -Path $OutDir -Force -WhatIf:$false | Out-Null
@@ -311,7 +315,7 @@ foreach ($r in $regRows) {
     switch ($r.Type) {
         'Registry' {
             $p = $r.Detail -split '\|'
-            if ($p.Count -ne 4) { Write-Change $r.Id 'Registry' $r.Name '' '' '' 'FAILED: bad Detail format' $false; continue }
+            if ($p.Count -ne 4 -or $p[0] -notmatch '^HK(LM|CU):\\') { Write-Change $r.Id 'Registry' $r.Name '' '' '' 'FAILED: bad Detail format - re-run the report (v1.0.1+) to regenerate Findings.csv' $false; continue }
             Set-LoggedRegistry -FindingId $r.Id -Path $p[0] -Name $p[1] -Type $p[2] -Value ([int]$p[3])
         }
         'PowerCfg' {
