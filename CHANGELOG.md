@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.6 - 2026-11-11
+
+### Fixed
+- **Per-user winget packages are no longer upgraded or removed from an admin session.** Slack's per-user install was left broken by an elevated upgrade: its launcher and updater were removed, and the new version was never put in place. Zoom's uninstall was refused for the same reason.
+  - **Report:** checks each package with an update using `winget list --id <id> --exact --scope user`. Per-user packages get `scope=user` in `State`, are recommended `Review`, and the note gives the exact non-admin command.
+  - **Act:** before every winget upgrade or uninstall, the script skips any row tagged `scope=user`, and it also re-checks the scope live, which protects older `Findings.csv` files. Skipped rows are logged as `SKIPPED: per-user install - in a NON-admin PowerShell run: ...`.
+
 ## 1.0.5 - 2026-11-11
 
 ### Fixed

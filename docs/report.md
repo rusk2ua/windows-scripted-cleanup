@@ -86,6 +86,7 @@ the value differs from the target, and **Keep** if it's already set. The full li
   - **Skip** for Office/Teams/OneDrive, since they're being removed
   - **Review** for station software and driver packages
   - **Upgrade** for everything else
+- Each package is also checked with `winget list --id <id> --exact --scope user`. **Per-user installs** (Slack, Zoom, and other apps that live in `%LOCALAPPDATA%`) are tagged `scope=user` and downgraded to **Review**, with a note giving the non-admin command. Upgrading or removing per-user apps from an elevated session can fail or leave them broken.
 
 ### 9. Outbound connections and DNS cache
 

@@ -463,6 +463,23 @@ foreach ($t in $tel) {
 
 # ---------------------------------------------------------------- 8. third-party updates (winget)
 Write-Host '[8/8] Pending third-party updates (winget)...' -ForegroundColor Cyan
+# Is a winget package installed per-user? Per-user installs (Slack, Zoom, ...) break or refuse when
+# upgraded/removed from an elevated session, so they must be handled from a non-admin PowerShell.
+function Get-WingetExe {
+    $w = (Get-Command winget.exe -ErrorAction SilentlyContinue).Source
+    if (-not $w) {
+        $w = Get-ChildItem "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe" -ErrorAction SilentlyContinue |
+             Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+    }
+    return $w
+}
+function Test-WingetUserScope {
+    param([string]$WingetExe, [string]$Id)
+    if (-not $WingetExe -or -not $Id) { return $false }
+    & $WingetExe list --id $Id --exact --scope user --accept-source-agreements --disable-interactivity *> $null
+    return ($LASTEXITCODE -eq 0)
+}
+
 $DriverPattern = '(?i)driver|realtek|nvidia|amd software|radeon|intel.*(graphics|wireless|wi-fi|bluetooth|chipset|management engine|rapid storage|serial io)|ftdi|silabs|prolific|thunderbolt'
 try {
     if (-not (Get-Module -ListAvailable -Name Microsoft.WinGet.Client)) {
@@ -476,6 +493,8 @@ try {
     }
     Import-Module Microsoft.WinGet.Client -ErrorAction Stop
     $upd = @(Get-WinGetPackage -ErrorAction Stop | Where-Object { $_.IsUpdateAvailable })
+    $wingetExe = Get-WingetExe
+    if ($upd.Count) { Write-Host '   Checking which packages are per-user installs...' }
     foreach ($u in $upd) {
         $txt = "$($u.Name) $($u.Id)"
         if ($txt -match $O365Pattern)       { $rec = 'Skip';    $note = 'Being removed - do not upgrade' }
@@ -483,8 +502,14 @@ try {
         elseif ($txt -match $DriverPattern) { $rec = 'Review';  $note = 'Driver package - leave alone unless it fixes a stability problem' }
         else                                { $rec = 'Upgrade'; $note = '' }
         $avail = @($u.AvailableVersions)[0]
+        $scope = 'machine'
+        if ($rec -ne 'Skip' -and (Test-WingetUserScope $wingetExe $u.Id)) {
+            $scope = 'user'
+            $rec   = 'Review'
+            $note  = (@($note, "Per-user install - upgrading from an admin session can break it. In a NON-admin PowerShell run: winget upgrade --id $($u.Id) -e") | Where-Object { $_ }) -join ' | '
+        }
         Add-Finding -Category 'Updates' -Type 'Winget' -Name $u.Name -ItemName $u.Id -Detail "$($u.InstalledVersion) -> $avail" `
-            -State "source=$($u.Source)" -Flag 'Update' -Recommendation $rec -Note $note
+            -State "source=$($u.Source) scope=$scope" -Flag 'Update' -Recommendation $rec -Note $note
     }
     Write-Host "   $($upd.Count) package(s) have updates."
 } catch {

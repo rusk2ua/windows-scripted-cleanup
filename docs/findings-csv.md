@@ -37,7 +37,7 @@
 | `Appx` | `Remove` | `Remove-AppxPackage -AllUsers` and `Remove-AppxProvisionedPackage -Online` | No |
 | `Registry` | `Apply` | Sets the value given in `Detail` (`Path\|Name\|Type\|Value`), creating the key if needed | Yes |
 | `PowerCfg` | `Apply` | `powercfg /setacvalueindex` and `/setdcvalueindex` on the active scheme, then `/setactive` | Yes |
-| `Winget` | `Upgrade` or `Remove` | `Upgrade`: `winget upgrade --id <ItemName> --exact --silent ...`. `Remove`: `winget uninstall --id <ItemName> --exact --silent`. Removals run before upgrades. | No |
+| `Winget` | `Upgrade` or `Remove` | `Upgrade`: `winget upgrade --id <ItemName> --exact --silent ...`. `Remove`: `winget uninstall --id <ItemName> --exact --silent`. Removals run before upgrades. **Per-user installs** (`scope=user` in `State`, or found to be per-user by a live check) are skipped and logged with the non-admin command to run instead. | No |
 | `Check` | (none) | Information only. `Blocker` rows change what the Act script does (see Office 365 removal). | n/a |
 
 A blank Action, or any word other than the four action words, means leave it alone. If you use one of the four action words on a row type that doesn't support it (for example `Disable` on a Registry row), the Act script prints a **NOT HANDLED** warning and logs it, rather than ignoring it silently.

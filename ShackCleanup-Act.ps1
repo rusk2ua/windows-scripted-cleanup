@@ -360,16 +360,29 @@ foreach ($r in $regRows) {
     }
 }
 
+# Is a winget package installed per-user? Per-user installs (Slack, Zoom, ...) break or refuse when
+# upgraded/removed from an elevated session, so they must be handled from a non-admin PowerShell.
+function Get-WingetExe {
+    $w = (Get-Command winget.exe -ErrorAction SilentlyContinue).Source
+    if (-not $w) {
+        $w = Get-ChildItem "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe" -ErrorAction SilentlyContinue |
+             Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
+    }
+    return $w
+}
+function Test-WingetUserScope {
+    param([string]$WingetExe, [string]$Id)
+    if (-not $WingetExe -or -not $Id) { return $false }
+    & $WingetExe list --id $Id --exact --scope user --accept-source-agreements --disable-interactivity *> $null
+    return ($LASTEXITCODE -eq 0)
+}
+
 # ---------------------------------------------------------------- 7. winget removals and upgrades
 $wgRemove = @($rows | Where-Object { $_.Type -eq 'Winget' -and $_.Action -eq 'Remove' })
 $wgUpdate = @($rows | Where-Object { $_.Type -eq 'Winget' -and $_.Action -eq 'Upgrade' })
 if ($wgRemove.Count + $wgUpdate.Count -gt 0) {
     Write-Host '[7] Third-party software (winget)...' -ForegroundColor Cyan
-    $winget = (Get-Command winget.exe -ErrorAction SilentlyContinue).Source
-    if (-not $winget) {
-        $winget = Get-ChildItem "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe" -ErrorAction SilentlyContinue |
-                  Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
-    }
+    $winget = Get-WingetExe
     if (-not $winget) {
         Write-Warning 'winget.exe not found - skipping. Install/update "App Installer" from the Microsoft Store.'
         foreach ($r in $wgRemove + $wgUpdate) { Write-Change $r.Id 'Winget' $r.ItemName '' '' $r.Action 'FAILED: winget.exe not found' $false }
@@ -401,12 +414,20 @@ if ($wgRemove.Count + $wgUpdate.Count -gt 0) {
             return "CHECK (exit $code)"
         }
         foreach ($r in $wgRemove) {
+            if ($r.State -match 'scope=user' -or (Test-WingetUserScope $winget $r.ItemName)) {
+                Write-Change $r.Id 'Winget' $r.ItemName 'Installed' $r.Detail 'uninstall' "SKIPPED: per-user install - in a NON-admin PowerShell run: winget uninstall --id $($r.ItemName) -e" $false
+                continue
+            }
             if ($PSCmdlet.ShouldProcess("$($r.Name) [$($r.ItemName)]", 'winget uninstall')) {
                 Write-Host "   Uninstalling $($r.Name)..."
                 Write-Change $r.Id 'Winget' $r.ItemName 'Installed' $r.Detail 'uninstalled' (Invoke-WingetRow $r 'uninstall') $false
             } else { Write-Change $r.Id 'Winget' $r.ItemName 'Installed' $r.Detail 'uninstall' 'WhatIf' $false }
         }
         foreach ($r in $wgUpdate) {
+            if ($r.State -match 'scope=user' -or (Test-WingetUserScope $winget $r.ItemName)) {
+                Write-Change $r.Id 'Winget' $r.ItemName 'Version' $r.Detail 'upgrade' "SKIPPED: per-user install - in a NON-admin PowerShell run: winget upgrade --id $($r.ItemName) -e" $false
+                continue
+            }
             if ($PSCmdlet.ShouldProcess("$($r.Name) [$($r.ItemName)]", "winget upgrade $($r.Detail)")) {
                 Write-Host "   Upgrading $($r.Name) ($($r.Detail))..."
                 Write-Change $r.Id 'Winget' $r.ItemName 'Version' $r.Detail 'upgraded' (Invoke-WingetRow $r 'upgrade') $false

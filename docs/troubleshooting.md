@@ -35,6 +35,12 @@ isn't an admin, temporarily make it one.
 ### winget: "The package installed for user scope cannot be uninstalled when running with administrator privileges"
 The app was installed per-user, Zoom being the usual example. Open a **normal, non-admin** PowerShell and run `winget uninstall --id <Id> -e`.
 
+### A per-user app (Slack, Zoom, ...) won't launch after an upgrade
+Versions before 1.0.6 could upgrade per-user apps from the elevated session, which can leave a Squirrel-style install (Slack, Teams classic, Discord) with no launcher. Your data in `%APPDATA%\<App>` is untouched. To repair it:
+1. Close the app, then `Rename-Item "$env:LOCALAPPDATA\<app>" "<app>.broken"`.
+2. In a **non-admin** PowerShell: `winget install --id <Id> -e --source winget --scope user --force`.
+3. Check that it opens signed in, then delete the `.broken` folder.
+
 ### winget: "Installer failed with exit code: 1223"
 1223 means the installer was cancelled, usually because the app was running. Quit it (check the system tray), then run `winget upgrade --id <Id> -e`.
 
