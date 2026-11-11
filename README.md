@@ -85,6 +85,7 @@ See [docs/safety-and-undo.md](docs/safety-and-undo.md).
 | [Classification rules](docs/classification-rules.md) | How items get flagged, the station-critical allowlist, and how to customize it |
 | [Safety and undo](docs/safety-and-undo.md) | Restore points, change log, undo |
 | [Troubleshooting](docs/troubleshooting.md) | Common problems and fixes |
+| [Example: shack NUC assessment](docs/station/nuc7i3bnh-hardware-assessment.md) | A real report's `Hardware.txt` turned into an upgrade plan (NUC7i3BNH: BIOS, RAM, Windows 10 ESU timeline) |
 
 ## Disclaimer
 
