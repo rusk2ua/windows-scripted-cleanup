@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.3 - 2026-11-11
+
+### Fixed
+- **Act:** `Stop-Transcript -WhatIf:$false` threw "parameter cannot be found" on Windows PowerShell 5.1, where only `Start-Transcript` accepts `-WhatIf`. It's now a plain `Stop-Transcript` inside `try/catch`.
+
 ## 1.0.2 - 2026-11-11
 
 ### Fixed

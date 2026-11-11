@@ -53,7 +53,7 @@ New-Item -ItemType Directory -Path $OutDir -Force -WhatIf:$false | Out-Null
 Start-Transcript -Path (Join-Path $OutDir 'Transcript.txt') -WhatIf:$false | Out-Null
 
 $rows = @(Import-Csv $FindingsCsv | Where-Object { $_.Action -in 'Disable', 'Remove', 'Apply', 'Upgrade' })
-if ($rows.Count -eq 0) { Write-Host 'No rows with an Action of Disable/Remove/Apply/Upgrade. Nothing to do.'; Stop-Transcript -WhatIf:$false -ErrorAction SilentlyContinue | Out-Null; exit 0 }
+if ($rows.Count -eq 0) { Write-Host 'No rows with an Action of Disable/Remove/Apply/Upgrade. Nothing to do.'; try { Stop-Transcript | Out-Null } catch {}; exit 0 }
 
 Write-Host "Rows selected for action: $($rows.Count)" -ForegroundColor Cyan
 $rows | Group-Object Category, Type, Action | Sort-Object Name | Format-Table @{ n = 'Category, Type, Action'; e = { $_.Name } }, Count -AutoSize | Out-String | Write-Host
@@ -65,7 +65,7 @@ if ($kfmBlock -and -not $Force) {
 
 if (-not $dry -and -not $Yes) {
     $ans = Read-Host 'Type YES to proceed'
-    if ($ans -cne 'YES') { Write-Host 'Aborted.'; Stop-Transcript -WhatIf:$false -ErrorAction SilentlyContinue | Out-Null; exit 0 }
+    if ($ans -cne 'YES') { Write-Host 'Aborted.'; try { Stop-Transcript | Out-Null } catch {}; exit 0 }
 }
 
 # ---------------------------------------------------------------- change log
@@ -129,7 +129,7 @@ if (-not $dry) {
         else { Set-ItemProperty $srKey -Name SystemRestorePointCreationFrequency -Value $oldFreq }
     } catch { Write-Warning "Restore point failed: $($_.Exception.Message)" }
     if ($rpOk) { Write-Host '   Restore point created.' -ForegroundColor Green }
-    elseif (-not $SkipRestorePoint) { Write-Error 'Could not confirm a new restore point. Fix System Protection (sysdm.cpl > System Protection) or re-run with -SkipRestorePoint.'; Stop-Transcript -WhatIf:$false -ErrorAction SilentlyContinue | Out-Null; exit 1 }
+    elseif (-not $SkipRestorePoint) { Write-Error 'Could not confirm a new restore point. Fix System Protection (sysdm.cpl > System Protection) or re-run with -SkipRestorePoint.'; try { Stop-Transcript | Out-Null } catch {}; exit 1 }
 
     $regBackup = Join-Path $OutDir 'RegistryBackup'
     New-Item -ItemType Directory $regBackup -Force | Out-Null
@@ -392,4 +392,5 @@ if (-not $dry) {
     Write-Host 'Reboot, then re-run ShackCleanup-Report.ps1 to confirm everything is gone.' -ForegroundColor Yellow
     Write-Host "To reverse registry/startup/task/service changes: .\ShackCleanup-Undo.ps1 -ChangeLog `"$ChangeLog`"" -ForegroundColor Yellow
 }
-Stop-Transcript -WhatIf:$false -ErrorAction SilentlyContinue | Out-Null
+# Stop-Transcript has no -WhatIf in Windows PowerShell 5.1, so no -WhatIf:$false here
+try { Stop-Transcript | Out-Null } catch {}
