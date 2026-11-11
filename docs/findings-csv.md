@@ -37,10 +37,10 @@
 | `Appx` | `Remove` | `Remove-AppxPackage -AllUsers` and `Remove-AppxProvisionedPackage -Online` | No |
 | `Registry` | `Apply` | Sets the value given in `Detail` (`Path\|Name\|Type\|Value`), creating the key if needed | Yes |
 | `PowerCfg` | `Apply` | `powercfg /setacvalueindex` and `/setdcvalueindex` on the active scheme, then `/setactive` | Yes |
-| `Winget` | `Upgrade` | `winget upgrade --id <ItemName> --exact --silent --accept-package-agreements --accept-source-agreements` | No |
+| `Winget` | `Upgrade` or `Remove` | `Upgrade`: `winget upgrade --id <ItemName> --exact --silent ...`. `Remove`: `winget uninstall --id <ItemName> --exact --silent`. Removals run before upgrades. | No |
 | `Check` | (none) | Information only. `Blocker` rows change what the Act script does (see Office 365 removal). | n/a |
 
-Any other Action value, or a blank one, is ignored.
+A blank Action, or any word other than the four action words, means leave it alone. If you use one of the four action words on a row type that doesn't support it (for example `Disable` on a Registry row), the Act script prints a **NOT HANDLED** warning and logs it, rather than ignoring it silently.
 
 ## Recommendation values
 

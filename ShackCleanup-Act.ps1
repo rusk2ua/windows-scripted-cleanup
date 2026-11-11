@@ -50,10 +50,10 @@ $WhatIfPreference = $savedWhatIf
 $stamp  = Get-Date -Format 'yyyyMMdd-HHmmss'
 $OutDir = Join-Path (Split-Path $FindingsCsv -Parent) $(if ($dry) { "WhatIf-$stamp" } else { "Act-$stamp" })
 New-Item -ItemType Directory -Path $OutDir -Force -WhatIf:$false | Out-Null
-Start-Transcript -Path (Join-Path $OutDir 'Transcript.txt') | Out-Null
+Start-Transcript -Path (Join-Path $OutDir 'Transcript.txt') -WhatIf:$false | Out-Null
 
 $rows = @(Import-Csv $FindingsCsv | Where-Object { $_.Action -in 'Disable', 'Remove', 'Apply', 'Upgrade' })
-if ($rows.Count -eq 0) { Write-Host 'No rows with an Action of Disable/Remove/Apply/Upgrade. Nothing to do.'; Stop-Transcript | Out-Null; exit 0 }
+if ($rows.Count -eq 0) { Write-Host 'No rows with an Action of Disable/Remove/Apply/Upgrade. Nothing to do.'; Stop-Transcript -WhatIf:$false -ErrorAction SilentlyContinue | Out-Null; exit 0 }
 
 Write-Host "Rows selected for action: $($rows.Count)" -ForegroundColor Cyan
 $rows | Group-Object Category, Type, Action | Sort-Object Name | Format-Table @{ n = 'Category, Type, Action'; e = { $_.Name } }, Count -AutoSize | Out-String | Write-Host
@@ -65,18 +65,20 @@ if ($kfmBlock -and -not $Force) {
 
 if (-not $dry -and -not $Yes) {
     $ans = Read-Host 'Type YES to proceed'
-    if ($ans -cne 'YES') { Write-Host 'Aborted.'; Stop-Transcript | Out-Null; exit 0 }
+    if ($ans -cne 'YES') { Write-Host 'Aborted.'; Stop-Transcript -WhatIf:$false -ErrorAction SilentlyContinue | Out-Null; exit 0 }
 }
 
 # ---------------------------------------------------------------- change log
 $ChangeLog = Join-Path $OutDir 'ChangeLog.csv'
 $script:Log = New-Object System.Collections.Generic.List[object]
+$script:Handled = New-Object 'System.Collections.Generic.HashSet[string]'
 function Write-Change {
     param($FindingId, $Kind, $Target, $Property = '', $OldValue = '', $NewValue = '', $Result = 'OK', $Reversible = $true)
     $script:Log.Add([pscustomobject][ordered]@{
         Time = (Get-Date -Format s); FindingId = $FindingId; Kind = $Kind; Target = $Target; Property = $Property
         OldValue = $OldValue; NewValue = $NewValue; Result = $Result; Reversible = $Reversible
     })
+    if ($FindingId) { [void]$script:Handled.Add("$FindingId") }
     $script:Log | Export-Csv $ChangeLog -NoTypeInformation -Encoding UTF8 -WhatIf:$false
     $color = if ($Result -like 'OK*' -or $Result -eq 'WhatIf') { 'Gray' } else { 'Yellow' }
     Write-Host ("   [{0}] {1} {2} {3} -> {4}" -f $Result, $Kind, $Target, $Property, $NewValue) -ForegroundColor $color
@@ -127,7 +129,7 @@ if (-not $dry) {
         else { Set-ItemProperty $srKey -Name SystemRestorePointCreationFrequency -Value $oldFreq }
     } catch { Write-Warning "Restore point failed: $($_.Exception.Message)" }
     if ($rpOk) { Write-Host '   Restore point created.' -ForegroundColor Green }
-    elseif (-not $SkipRestorePoint) { Write-Error 'Could not confirm a new restore point. Fix System Protection (sysdm.cpl > System Protection) or re-run with -SkipRestorePoint.'; Stop-Transcript | Out-Null; exit 1 }
+    elseif (-not $SkipRestorePoint) { Write-Error 'Could not confirm a new restore point. Fix System Protection (sysdm.cpl > System Protection) or re-run with -SkipRestorePoint.'; Stop-Transcript -WhatIf:$false -ErrorAction SilentlyContinue | Out-Null; exit 1 }
 
     $regBackup = Join-Path $OutDir 'RegistryBackup'
     New-Item -ItemType Directory $regBackup -Force | Out-Null
@@ -333,18 +335,29 @@ foreach ($r in $regRows) {
     }
 }
 
-# ---------------------------------------------------------------- 7. winget upgrades
-$updRows = @($rows | Where-Object { $_.Type -eq 'Winget' -and $_.Action -eq 'Upgrade' })
-if ($updRows.Count -gt 0) {
-    Write-Host '[7] Third-party upgrades (winget)...' -ForegroundColor Cyan
+# ---------------------------------------------------------------- 7. winget removals and upgrades
+$wgRemove = @($rows | Where-Object { $_.Type -eq 'Winget' -and $_.Action -eq 'Remove' })
+$wgUpdate = @($rows | Where-Object { $_.Type -eq 'Winget' -and $_.Action -eq 'Upgrade' })
+if ($wgRemove.Count + $wgUpdate.Count -gt 0) {
+    Write-Host '[7] Third-party software (winget)...' -ForegroundColor Cyan
     $winget = (Get-Command winget.exe -ErrorAction SilentlyContinue).Source
     if (-not $winget) {
         $winget = Get-ChildItem "$env:ProgramFiles\WindowsApps\Microsoft.DesktopAppInstaller_*_x64__8wekyb3d8bbwe\winget.exe" -ErrorAction SilentlyContinue |
                   Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
     }
-    if (-not $winget) { Write-Warning 'winget.exe not found - skipping upgrades. Install/update "App Installer" from the Microsoft Store.' }
-    else {
-        foreach ($r in $updRows) {
+    if (-not $winget) {
+        Write-Warning 'winget.exe not found - skipping. Install/update "App Installer" from the Microsoft Store.'
+        foreach ($r in $wgRemove + $wgUpdate) { Write-Change $r.Id 'Winget' $r.ItemName '' '' $r.Action 'FAILED: winget.exe not found' $false }
+    } else {
+        foreach ($r in $wgRemove) {
+            if ($PSCmdlet.ShouldProcess("$($r.Name) [$($r.ItemName)]", 'winget uninstall')) {
+                Write-Host "   Uninstalling $($r.Name)..."
+                & $winget uninstall --id $r.ItemName --exact --silent --accept-source-agreements --disable-interactivity | Out-Host
+                $code = $LASTEXITCODE
+                Write-Change $r.Id 'Winget' $r.ItemName 'Installed' $r.Detail 'uninstalled' $(if ($code -eq 0) { 'OK' } else { "CHECK (exit $code)" }) $false
+            } else { Write-Change $r.Id 'Winget' $r.ItemName 'Installed' $r.Detail 'uninstall' 'WhatIf' $false }
+        }
+        foreach ($r in $wgUpdate) {
             if ($PSCmdlet.ShouldProcess("$($r.Name) [$($r.ItemName)]", "winget upgrade $($r.Detail)")) {
                 Write-Host "   Upgrading $($r.Name) ($($r.Detail))..."
                 & $winget upgrade --id $r.ItemName --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity | Out-Host
@@ -353,6 +366,19 @@ if ($updRows.Count -gt 0) {
             } else { Write-Change $r.Id 'Winget' $r.ItemName 'Version' $r.Detail 'upgrade' 'WhatIf' $false }
         }
     }
+}
+
+# ---------------------------------------------------------------- unhandled rows (never silently ignore an instruction)
+$unhandled = @($rows | Where-Object { -not $script:Handled.Contains("$($_.Id)") })
+if ($kfmBlock -and -not $Force) { $unhandled = @($unhandled | Where-Object { $_.Type -ne 'Uninstall-OneDrive' }) }
+if ($unhandled.Count -gt 0) {
+    Write-Host ''
+    Write-Warning "$($unhandled.Count) selected row(s) were NOT acted on - this Type/Action combination isn't supported:"
+    $unhandled | Format-Table Id, Category, Type, Action, Name -AutoSize | Out-String | Write-Host
+    foreach ($r in $unhandled) { [void]$script:Handled.Add("$($r.Id)"); $script:Log.Add([pscustomobject][ordered]@{
+        Time = (Get-Date -Format s); FindingId = $r.Id; Kind = $r.Type; Target = $r.Name; Property = ''; OldValue = ''
+        NewValue = $r.Action; Result = 'NOT HANDLED: unsupported Type/Action'; Reversible = $false }) }
+    $script:Log | Export-Csv $ChangeLog -NoTypeInformation -Encoding UTF8 -WhatIf:$false
 }
 
 # ---------------------------------------------------------------- done
@@ -366,4 +392,4 @@ if (-not $dry) {
     Write-Host 'Reboot, then re-run ShackCleanup-Report.ps1 to confirm everything is gone.' -ForegroundColor Yellow
     Write-Host "To reverse registry/startup/task/service changes: .\ShackCleanup-Undo.ps1 -ChangeLog `"$ChangeLog`"" -ForegroundColor Yellow
 }
-Stop-Transcript | Out-Null
+Stop-Transcript -WhatIf:$false -ErrorAction SilentlyContinue | Out-Null

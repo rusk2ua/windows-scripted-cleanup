@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0.2 - 2026-11-11
+
+### Fixed
+- **Act:** `Action = Remove` on a winget (Updates) row was counted in the summary but never carried out, and nothing was logged. It now runs `winget uninstall --id <id> --exact --silent`, before the upgrades.
+- **Act:** under `-WhatIf` the transcript was also only simulated, so the final `Stop-Transcript` threw an error. The transcript is now always recorded.
+
+### Added
+- **Act:** a final check lists and logs (`NOT HANDLED`) any selected row whose Type/Action combination no step supports, instead of ignoring it.
+
 ## 1.0.1 - 2026-11-11
 
 ### Fixed

@@ -63,10 +63,15 @@ nothing left by this point, and the log shows `OK (not present)`.
 Each change logs the old value's type and data, or `<absent>` if it didn't exist, so undo can put
 it back exactly.
 
-### 7. winget upgrades
+### 7. winget removals and upgrades
 
-These run one package at a time for rows with `Action = Upgrade`. If `winget.exe` isn't on the
+The script first uninstalls rows with `Action = Remove` (`winget uninstall --id ... --exact --silent`), then upgrades rows with `Action = Upgrade`, one package at a time. If `winget.exe` isn't on the
 PATH in the elevated session, the script looks in `WindowsApps` for the App Installer copy.
+
+### 8. Unhandled-row check
+
+Any selected row that no step acted on (an Action the row's Type doesn't support) is listed in a
+warning and logged as `NOT HANDLED`. An instruction is never silently ignored.
 
 ## Output
 
@@ -92,6 +97,7 @@ Report-<stamp>\
 | `CHECK ...` | Finished, but with something worth a look |
 | `SKIPPED: ...` | Deliberately skipped, for example because of Known Folder Move |
 | `FAILED: ...` | The error message follows |
+| `NOT HANDLED: ...` | That Action isn't supported for that row Type |
 | `WhatIf` | Dry run |
 
 ## What it never does
