@@ -6,7 +6,8 @@ most of it spent reading the report. Don't do this the night before a contest.
 ## 1. Before you start
 
 - **Close your logging and radio-control software.** That means N1MM+, WSJT-X, OmniRig, DXLab and the like. The report doesn't need them closed, but the Act script stops Office-family processes and may run installers.
-- **Check Windows Update.** Open *Settings > Update & Security > Windows Update*. On Windows 10, make sure it says the PC is enrolled in Extended Security Updates. If it isn't, sort that out first, because an unpatched OS is a bigger problem than anything these scripts clean up.
+- **Check Windows Update** (Windows 11: *Settings > Windows Update*; Windows 10: *Settings > Update & Security > Windows Update*). On Windows 10, make sure it says the PC is enrolled in Extended Security Updates. If it isn't, sort that out first, because an unpatched OS is a bigger problem than anything these scripts clean up.
+- **On a brand-new PC,** run the cleanup after Windows Update and before you install station software or restore settings. See [windows-11.md](windows-11.md#when-to-run-it-on-a-new-pc).
 - **Back up anything important.** The scripts make a restore point, but a restore point isn't a backup.
 
 ## 2. Get the scripts onto the PC

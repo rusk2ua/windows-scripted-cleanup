@@ -22,6 +22,10 @@ jobs:
           }
           if ($failed) { exit 1 }
 
+      - name: Offline tests (Windows PowerShell 5.1)
+        shell: powershell
+        run: powershell -NoProfile -File .\tests\Run-Tests.ps1
+
       - name: PSScriptAnalyzer
         shell: powershell
         run: |

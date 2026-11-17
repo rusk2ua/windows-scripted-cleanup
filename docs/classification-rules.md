@@ -24,8 +24,9 @@ Anything matching these is tagged `StationCritical` / `Keep`:
 | Interfaces / SO2R | microHAM, SO2R, OTRSP, RemoteRig, WinKey / K1EL |
 | USB-serial / virtual ports | FTDI, Silicon Labs / CP210x, Prolific, VSPE, com0com, "virtual serial" |
 | Audio routing | VB-Audio, Voicemeeter, Realtek audio (`RtkAudUService`) |
-| Rotators | PstRotator, SPID, Green Heron |
+| Rotators | PstRotator, GH Everyware, SPID, Green Heron |
 | Time sync | Meinberg NTP, `ntpd`, Dimension 4, BktTimeSync, NetTime |
+| Remote operation | wfview, remkey |
 | QSL | TQSL / TrustedQSL, LoTW |
 
 The same allowlist also stops winget from auto-upgrading station software: matching packages get

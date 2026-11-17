@@ -138,7 +138,11 @@ if (-not $dry) {
         'HKCU\Software\Microsoft\Windows\CurrentVersion\Run', 'HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved',
         'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved', 'HKLM\SOFTWARE\Policies', 'HKCU\Software\Policies',
         'HKCU\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager', 'HKCU\Software\Microsoft\Windows\CurrentVersion\Privacy',
-        'HKCU\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo', 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power'
+        'HKCU\Software\Microsoft\Windows\CurrentVersion\AdvertisingInfo', 'HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Power',
+        'HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced', 'HKCU\Software\Microsoft\Windows\CurrentVersion\Search',
+        'HKCU\Software\Microsoft\Windows\CurrentVersion\UserProfileEngagement', 'HKCU\Software\Microsoft\Siuf',
+        'HKCU\Software\Classes\CLSID\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}', 'HKCU\Software\Classes\CLSID\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}',
+        'HKCU\Software\Classes\CLSID\{018D5C66-4533-4307-9B53-224DE2ED1FE6}'
     )
     $n = 0
     foreach ($k in $keys) { $n++; & reg.exe export $k (Join-Path $regBackup ("{0:D2}.reg" -f $n)) /y 2>$null | Out-Null }
@@ -457,6 +461,9 @@ Write-Host "Change log : $ChangeLog"
 Write-Host "Transcript : $(Join-Path $OutDir 'Transcript.txt')"
 if (-not $dry) {
     Write-Host ''
+    if (@($script:Log | Where-Object { $_.Target -like 'HKCU:*' -and $_.Result -eq 'OK' }).Count -gt 0) {
+        Write-Host 'Start menu, taskbar and File Explorer changes take effect after you sign out and back in.' -ForegroundColor Yellow
+    }
     Write-Host 'Reboot, then re-run ShackCleanup-Report.ps1 to confirm everything is gone.' -ForegroundColor Yellow
     Write-Host "To reverse registry/startup/task/service changes: .\ShackCleanup-Undo.ps1 -ChangeLog `"$ChangeLog`"" -ForegroundColor Yellow
 }

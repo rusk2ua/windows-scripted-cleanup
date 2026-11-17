@@ -8,7 +8,7 @@
 | Column | Meaning | Edit it? |
 |---|---|---|
 | `Id` | Row number. Used by `ShackCleanup-Undo.ps1 -FindingId`. | No |
-| `Category` | `Office365`, `Telemetry`, `Startup`, `ScheduledTask`, `Service`, `StationTuning`, or `Updates` | No |
+| `Category` | `Office365`, `WindowsApps`, `Windows11AI`, `Windows11UI`, `Edge`, `Telemetry`, `Startup`, `ScheduledTask`, `Service`, `StationTuning`, or `Updates` (see [windows-11.md](windows-11.md) for the Windows 11 ones) | No |
 | `Type` | How the item is found and acted on (see below) | No |
 | `Name` | Human-readable name | No |
 | `Location` | Where the item lives: a Run-key or startup-folder code, a task path, or an uninstall registry path | No |

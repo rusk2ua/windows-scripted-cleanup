@@ -4,7 +4,9 @@ PowerShell scripts for auditing and slimming down a **Windows 10/11 ham radio st
 remove Microsoft 365 / Office / OneDrive / Teams, cut Windows telemetry back to the
 *Required* level, flag (and optionally disable) anything that phones home or runs a background
 updater, update third-party apps through `winget`, and fix two power settings that are known to
-cause USB/CAT/audio dropouts. The radio software and drivers are left alone.
+cause USB/CAT/audio dropouts. On **Windows 11** it also removes Copilot and the preinstalled consumer
+apps, turns off Recall and Click to Do, strips the Start/Explorer/Settings ads and nags, and quiets
+Edge. The radio software and drivers are left alone.
 
 It works in three steps: **report, review, act**. Nothing changes until you've reviewed a CSV and
 said yes, and every reversible change can be rolled back.
@@ -51,6 +53,11 @@ Full walkthrough: [docs/getting-started.md](docs/getting-started.md)
 - **Phones home / background updaters:** the Adobe updater and licensing check, Java updater, Intel Driver & Support Assistant, Intel Computing Improvement Program, NVIDIA telemetry, Edge startup boost, and launch-at-logon apps like Zoom, Dropbox, Spotify and Steam are all set to **Disable**. Browser updaters are set to **Keep**, because they deliver security fixes.
 - **Station stability:** USB selective suspend is turned **off**, and Fast Startup is turned **off** so drivers fully re-initialize on every boot.
 - **Third-party updates:** `winget upgrade` runs only for packages you mark **Upgrade**. Drivers and station software default to **Review**.
+- **Windows 11 only:**
+  - Copilot, Clipchamp, News, Weather, Solitaire, the Xbox apps, Phone Link, Widgets, Tips and other preinstalled apps are removed. Calculator, Notepad, Paint, Photos, Snipping Tool, Terminal, Camera, Sound Recorder, Clock and the Store are kept.
+  - Copilot, Recall and Click to Do are turned off by policy.
+  - Start, taskbar, Search, File Explorer, Settings and lock-screen ads and nags are turned off.
+- **Edge (Windows 10 and 11):** no startup boost or background running, no sidebar or Copilot button, no shopping assistant, and no first-run or recommendation nags. Edge keeps updating.
 
 The details are in [docs/what-gets-changed.md](docs/what-gets-changed.md) and [docs/telemetry.md](docs/telemetry.md).
 
@@ -82,10 +89,21 @@ See [docs/safety-and-undo.md](docs/safety-and-undo.md).
 | [What gets changed](docs/what-gets-changed.md) | Exactly what the Act script does, in order |
 | [Office 365 removal](docs/office365-removal.md) | How each Office/OneDrive/Teams flavor is removed, and the Known Folder Move gotcha |
 | [Telemetry](docs/telemetry.md) | Each telemetry setting, what it does, and why DiagTrack stays on |
+| [Windows 11](docs/windows-11.md) | The Windows 11 additions: Store apps, AI features, shell nags, Edge, and where the cleanup fits on a new PC |
 | [Classification rules](docs/classification-rules.md) | How items get flagged, the station-critical allowlist, and how to customize it |
 | [Safety and undo](docs/safety-and-undo.md) | Restore points, change log, undo |
 | [Troubleshooting](docs/troubleshooting.md) | Common problems and fixes |
 | [Example: shack NUC assessment](docs/station/nuc7i3bnh-hardware-assessment.md) | A real report's `Hardware.txt` turned into an upgrade plan (NUC7i3BNH: BIOS, RAM, Windows 10 ESU timeline) |
+
+## What has and hasn't been tested
+
+- **On Windows 10 (shack NUC, Nov 2026):** the full report, review and Act cycle. That run is where v1.0.1 to v1.0.6 came from: app removal with a per-user fallback, winget source pinning, and skipping per-user packages.
+- **Offline:** `tests\Run-Tests.ps1` runs under PowerShell 7 and in the GitHub Windows PowerShell 5.1 workflow. It checks that every script parses and is ASCII-only; that every registry row matches the Act script's format with no value set twice; that Windows 11 rows appear only on Windows 11; that already-set values become `Keep`; and that the keep-list apps (Calculator, Store, App Installer and so on) are never offered for removal.
+- **Not yet run on Windows 11 hardware.** The Windows 11 rows (v1.1.0) are new. Start with the report and `-WhatIf`, and check `Report.html` before the real run.
+
+```powershell
+powershell -NoProfile -File .\tests\Run-Tests.ps1
+```
 
 ## Disclaimer
 

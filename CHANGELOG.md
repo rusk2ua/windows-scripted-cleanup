@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.1.0 - 2026-11-17
+
+### Added: Windows 11 support
+The report detects Windows 11 (build 22000 or later) and adds rows in four new categories. See [docs/windows-11.md](docs/windows-11.md).
+- **`WindowsApps`:** preinstalled Store apps set to Remove: Copilot, Clipchamp, News, Weather, Bing Search, Widgets, Tips, Get Help, Feedback Hub, Maps, Solitaire, Sticky Notes, Journal, Power Automate, Dev Home, Family, Movies & TV, Phone Link, the Xbox apps and Game Bar, and Edge Game Assist. Media Player and Quick Assist are set to Review. Calculator, Notepad, Paint, Photos, Snipping Tool, Terminal, Camera, Sound Recorder, Clock, the Store, App Installer and framework packages are never listed. Packages Windows marks non-removable become `Keep`.
+- **`Windows11AI`:** Copilot off by policy (user and machine), no Copilot taskbar button, Recall snapshots off and Recall locked out, Click to Do off.
+- **`Windows11UI`:** Widgets and the Chat icon off; Start tips, ads, account notifications and recently added apps off (recent files and jump lists set to Review); no search highlights or Bing web results; File Explorer opens to This PC, with Home, Gallery, sync-provider ads and Office.com files hidden; no suggested content in Settings, tips notifications, post-update welcome, "finish setting up" nag or lock-screen tips; no cloud-optimized content or Microsoft account nags.
+- **`Edge`** (Windows 10 and 11): no startup boost or background mode, no sidebar or Copilot button, no shopping assistant, first-run or recommendation nags, personalization reporting or MSN new-tab feed, and diagnostic data at Required.
+
+### Changed
+- Microsoft To Do, People, News and Weather now default to Remove instead of Review.
+- `Report.html` shows every category, the new ones included.
+- The station-critical allowlist adds GH Everyware, wfview and remkey.
+- The 45-day "no Windows update" warning mentions ESU only on Windows 10.
+- **Act:** registry backups now include the Explorer, Search and user-engagement keys and the Explorer namespace CLSIDs. After a run that changed per-user settings, it reminds you to sign out and back in.
+
 ## 1.0.6 - 2026-11-11
 
 ### Fixed

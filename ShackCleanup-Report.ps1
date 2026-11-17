@@ -55,7 +55,7 @@ if ($consoleUser -and ($consoleUser -ne $id.Name)) {
 
 # ---------------------------------------------------------------- classification rules
 # Station-critical software: never recommended for removal/disable.
-$StationPattern = '(?i)n1mm|omni-?rig|wsjt|jtdx|jtalert|gridtracker|flexradio|smartsdr|\bicom\b|rs-ba1|rs-ms1|ftdi|silabs|silicon lab|cp210|prolific|dxlab|dxkeeper|spotcollector|log4om|ham radio deluxe|\bhrd\b|microham|so2r|otrsp|remoterig|elecraft|yaesu|kenwood|tqsl|trustedqsl|lotw|vspe|com0com|virtual serial|vb-audio|voicemeeter|mmtty|2tone|win-?test|skimmer|meinberg|ntpd|\bntp\b|dimension ?4|bkttimesync|nettime|rumlog|n3fjp|winkey|k1el|fldigi|flrig|dxlog|hdsdr|sdrsharp|sdr console|sdruno|sdr-?radio|pstrotator|\bspid\b|green ?heron|rtkaud|realtek audio'
+$StationPattern = '(?i)n1mm|omni-?rig|wsjt|jtdx|jtalert|gridtracker|flexradio|smartsdr|\bicom\b|rs-ba1|rs-ms1|ftdi|silabs|silicon lab|cp210|prolific|dxlab|dxkeeper|spotcollector|log4om|ham radio deluxe|\bhrd\b|microham|so2r|otrsp|remoterig|elecraft|yaesu|kenwood|tqsl|trustedqsl|lotw|vspe|com0com|virtual serial|vb-audio|voicemeeter|mmtty|2tone|win-?test|skimmer|meinberg|ntpd|\bntp\b|dimension ?4|bkttimesync|nettime|rumlog|n3fjp|winkey|k1el|fldigi|flrig|dxlog|hdsdr|sdrsharp|sdr console|sdruno|sdr-?radio|pstrotator|everyware|wfview|remkey|\bspid\b|green ?heron|rtkaud|realtek audio'
 
 # Anything tied to Office 365 / OneDrive / Teams / Skype / Outlook.
 $O365Pattern = '(?i)clicktorun|click-to-run|officec2r|officeclicktorun|office ?16|microsoft office|microsoft 365|office automatic updates|office feature updates|officetelemetry|office performance monitor|office background|onedrive|\bteams\b|msteams|skype|outlook|onenote|officehub'
@@ -142,6 +142,7 @@ $mem  = Get-CimInstance Win32_PhysicalMemory
 $memA = Get-CimInstance Win32_PhysicalMemoryArray | Select-Object -First 1
 $os   = Get-CimInstance Win32_OperatingSystem
 $cv   = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+$IsWin11 = ([int]$cv.CurrentBuild -ge 22000)
 $secureBoot = try { if (Confirm-SecureBootUEFI) { 'On' } else { 'Off' } } catch { 'Not supported / legacy BIOS mode' }
 $tpm = try { Get-Tpm -ErrorAction Stop } catch { $null }
 $tpmVer = try { (Get-CimInstance -Namespace root\cimv2\Security\MicrosoftTpm -ClassName Win32_Tpm -ErrorAction Stop).SpecVersion } catch { '' }
@@ -372,20 +373,55 @@ foreach ($root in $uninstRoots) {
     }
 }
 
-# Store (AppX) apps tied to Microsoft accounts / Office 365
+# Store (AppX) apps: Office 365 / Microsoft-account apps, plus Windows 10/11 consumer bloat.
+# Apps that aren't installed simply don't show up, so one list covers both Windows versions.
+# Deliberately NOT listed (kept): Calculator, Notepad, Paint, Photos, Snipping Tool, Terminal,
+# Camera, Sound Recorder, Clock, Microsoft Store, App Installer (winget), and all framework/runtime packages.
 $appx = @(
-    @{ N = 'Microsoft.MicrosoftOfficeHub';         R = 'Remove'; Note = 'Microsoft 365 (Office) hub app' }
-    @{ N = 'Microsoft.Office.OneNote';             R = 'Remove'; Note = 'OneNote for Windows 10' }
-    @{ N = 'Microsoft.Office.Desktop*';            R = 'Remove'; Note = 'Store-packaged Office' }
-    @{ N = 'Microsoft.OutlookForWindows';          R = 'Remove'; Note = 'New Outlook' }
-    @{ N = 'MSTeams';                              R = 'Remove'; Note = 'New Teams' }
-    @{ N = 'MicrosoftTeams';                       R = 'Remove'; Note = 'Teams (consumer)' }
-    @{ N = 'Microsoft.SkypeApp';                   R = 'Remove'; Note = 'Skype (retired)' }
-    @{ N = 'Microsoft.windowscommunicationsapps';  R = 'Remove'; Note = 'Mail and Calendar (retired, Microsoft-account/O365 linked)' }
-    @{ N = 'Microsoft.Todos';                      R = 'Review'; Note = 'Microsoft To Do - syncs with Microsoft account' }
-    @{ N = 'Microsoft.People';                     R = 'Review'; Note = 'People - syncs with Microsoft account' }
-    @{ N = 'Microsoft.BingNews';                   R = 'Review'; Note = 'Phones home for content' }
-    @{ N = 'Microsoft.BingWeather';                R = 'Review'; Note = 'Phones home for content' }
+    # Office 365 / Microsoft account
+    @{ N = 'Microsoft.MicrosoftOfficeHub';               C = 'Office365';   R = 'Remove'; Note = 'Microsoft 365 (Office) hub / Microsoft 365 Copilot app' }
+    @{ N = 'Microsoft.Office.OneNote';                   C = 'Office365';   R = 'Remove'; Note = 'OneNote for Windows 10' }
+    @{ N = 'Microsoft.Office.Desktop*';                  C = 'Office365';   R = 'Remove'; Note = 'Store-packaged Office' }
+    @{ N = 'Microsoft.OutlookForWindows';                C = 'Office365';   R = 'Remove'; Note = 'New Outlook' }
+    @{ N = 'MSTeams';                                    C = 'Office365';   R = 'Remove'; Note = 'New Teams' }
+    @{ N = 'MicrosoftTeams';                             C = 'Office365';   R = 'Remove'; Note = 'Teams (consumer)' }
+    @{ N = 'Microsoft.SkypeApp';                         C = 'Office365';   R = 'Remove'; Note = 'Skype (retired)' }
+    @{ N = 'Microsoft.windowscommunicationsapps';        C = 'Office365';   R = 'Remove'; Note = 'Mail and Calendar (retired, Microsoft-account linked)' }
+    @{ N = 'Microsoft.Todos';                            C = 'Office365';   R = 'Remove'; Note = 'Microsoft To Do - syncs with a Microsoft account' }
+    @{ N = 'Microsoft.People';                           C = 'Office365';   R = 'Remove'; Note = 'People - syncs with a Microsoft account' }
+    # AI
+    @{ N = 'Microsoft.Copilot';                          C = 'WindowsApps'; R = 'Remove'; Note = 'Copilot app' }
+    @{ N = 'Microsoft.Windows.Ai.Copilot.Provider';      C = 'WindowsApps'; R = 'Remove'; Note = 'Copilot provider' }
+    @{ N = 'Microsoft.549981C3F5F10';                    C = 'WindowsApps'; R = 'Remove'; Note = 'Cortana (retired)' }
+    # Content / ads / phones home
+    @{ N = 'Microsoft.BingNews';                         C = 'WindowsApps'; R = 'Remove'; Note = 'Microsoft News - phones home for content' }
+    @{ N = 'Microsoft.BingWeather';                      C = 'WindowsApps'; R = 'Remove'; Note = 'Weather - phones home for content' }
+    @{ N = 'Microsoft.BingSearch';                       C = 'WindowsApps'; R = 'Remove'; Note = 'Bing Search app' }
+    @{ N = 'MicrosoftWindows.Client.WebExperience';      C = 'WindowsApps'; R = 'Remove'; Note = 'Widgets board (Windows Web Experience Pack)' }
+    @{ N = 'Microsoft.Getstarted';                       C = 'WindowsApps'; R = 'Remove'; Note = 'Tips' }
+    @{ N = 'Microsoft.GetHelp';                          C = 'WindowsApps'; R = 'Remove'; Note = 'Get Help' }
+    @{ N = 'Microsoft.WindowsFeedbackHub';               C = 'WindowsApps'; R = 'Remove'; Note = 'Feedback Hub' }
+    @{ N = 'Microsoft.WindowsMaps';                      C = 'WindowsApps'; R = 'Remove'; Note = 'Maps (retired)' }
+    @{ N = 'Clipchamp.Clipchamp';                        C = 'WindowsApps'; R = 'Remove'; Note = 'Clipchamp video editor' }
+    @{ N = 'Microsoft.MicrosoftSolitaireCollection';     C = 'WindowsApps'; R = 'Remove'; Note = 'Solitaire (ads)' }
+    @{ N = 'Microsoft.MicrosoftStickyNotes';             C = 'WindowsApps'; R = 'Remove'; Note = 'Sticky Notes (syncs to Microsoft account)' }
+    @{ N = 'Microsoft.MicrosoftJournal';                 C = 'WindowsApps'; R = 'Remove'; Note = 'Journal' }
+    @{ N = 'Microsoft.PowerAutomateDesktop';             C = 'WindowsApps'; R = 'Remove'; Note = 'Power Automate' }
+    @{ N = 'Microsoft.Windows.DevHome';                  C = 'WindowsApps'; R = 'Remove'; Note = 'Dev Home (retired)' }
+    @{ N = 'MicrosoftCorporationII.MicrosoftFamily';     C = 'WindowsApps'; R = 'Remove'; Note = 'Family Safety' }
+    @{ N = 'Microsoft.ZuneVideo';                        C = 'WindowsApps'; R = 'Remove'; Note = 'Movies & TV' }
+    @{ N = 'Microsoft.ZuneMusic';                        C = 'WindowsApps'; R = 'Review'; Note = 'Media Player - keep if you play back audio recordings on this PC' }
+    @{ N = 'MicrosoftCorporationII.QuickAssist';         C = 'WindowsApps'; R = 'Review'; Note = 'Quick Assist - remote help; keep if someone helps you this way' }
+    # Phone Link / Xbox
+    @{ N = 'Microsoft.YourPhone';                        C = 'WindowsApps'; R = 'Remove'; Note = 'Phone Link' }
+    @{ N = 'MicrosoftWindows.CrossDevice';               C = 'WindowsApps'; R = 'Remove'; Note = 'Phone Link / cross-device helper' }
+    @{ N = 'Microsoft.GamingApp';                        C = 'WindowsApps'; R = 'Remove'; Note = 'Xbox app' }
+    @{ N = 'Microsoft.XboxGamingOverlay';                C = 'WindowsApps'; R = 'Remove'; Note = 'Xbox Game Bar' }
+    @{ N = 'Microsoft.XboxIdentityProvider';             C = 'WindowsApps'; R = 'Remove'; Note = 'Xbox sign-in' }
+    @{ N = 'Microsoft.XboxSpeechToTextOverlay';          C = 'WindowsApps'; R = 'Remove'; Note = 'Xbox speech overlay' }
+    @{ N = 'Microsoft.Xbox.TCUI';                        C = 'WindowsApps'; R = 'Remove'; Note = 'Xbox UI components' }
+    @{ N = 'Microsoft.XboxApp';                          C = 'WindowsApps'; R = 'Remove'; Note = 'Xbox Console Companion (Windows 10)' }
+    @{ N = 'Microsoft.Edge.GameAssist';                  C = 'WindowsApps'; R = 'Remove'; Note = 'Edge Game Assist' }
 )
 $allAppx = @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue)
 $prov    = @(Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue)
@@ -394,11 +430,16 @@ foreach ($a in $appx) {
     $phits = @($prov    | Where-Object { $_.DisplayName -like $a.N })
     $names = @(@($hits | ForEach-Object { $_.Name }) + @($phits | ForEach-Object { $_.DisplayName }) | Where-Object { $_ } | Sort-Object -Unique)
     foreach ($n in $names) {
-        $ver = ($hits | Where-Object Name -eq $n | Select-Object -First 1).Version
-        $st  = @(); if ($hits | Where-Object Name -eq $n) { $st += 'Installed' }; if ($phits | Where-Object DisplayName -eq $n) { $st += 'Provisioned' }
-        $cat = if ($a.R -eq 'Remove') { 'Office365' } else { 'Telemetry' }
-        Add-Finding -Category $cat -Type 'Appx' -Name $n -ItemName $n -Detail "v$ver" -Company 'Microsoft' -State ($st -join '+') `
-            -Flag $(if ($a.R -eq 'Remove') { 'O365' } else { 'PhonesHome' }) -Recommendation $a.R -Note $a.Note
+        $pkg = $hits | Where-Object Name -eq $n | Select-Object -First 1
+        $ver = $pkg.Version
+        $st  = @(); if ($pkg) { $st += 'Installed' }; if ($phits | Where-Object DisplayName -eq $n) { $st += 'Provisioned' }
+        $rec = $a.R; $note = $a.Note
+        if ($pkg -and $pkg.PSObject.Properties['NonRemovable'] -and $pkg.NonRemovable) {
+            $rec = 'Keep'; $note = "$note - Windows marks this package non-removable"
+        }
+        $flag = if ($a.C -eq 'Office365') { 'O365' } else { 'Bloat' }
+        Add-Finding -Category $a.C -Type 'Appx' -Name $n -ItemName $n -Detail "v$ver" -Company 'Microsoft' -State ($st -join '+') `
+            -Flag $flag -Recommendation $rec -Note $note
     }
 }
 
@@ -459,6 +500,71 @@ foreach ($t in $tel) {
     $rec = if ("$cur" -eq $parts[3]) { 'Keep' } else { 'Apply' }
     Add-Finding -Category 'Telemetry' -Type 'Registry' -Name $t.N -Detail $t.D -Company 'Windows' -State "current=$cur" `
         -Flag 'PhonesHome' -Recommendation $rec -Note $(if ($rec -eq 'Keep') { 'Already set' } else { '' })
+}
+
+# ---------------------------------------------------------------- 7b. Windows 11: AI features and shell nags
+function Add-RegRow {
+    param($Category, $Name, $Detail, $Flag, $Note = '', $Recommendation = 'Apply')
+    Add-Finding -Category $Category -Type 'Registry' -Name $Name -Detail $Detail -Company 'Windows' -Flag $Flag -Recommendation $Recommendation -Note $Note
+}
+$adv = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
+$cdm = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager'
+if ($IsWin11) {
+    Write-Host '[7b] Windows 11 AI features and shell nags...' -ForegroundColor Cyan
+    # Copilot, Recall, Click to Do. Recall and Click to Do only exist on Copilot+ PCs; the policies are harmless elsewhere.
+    Add-RegRow 'Windows11AI' 'Copilot off (user policy)'          'HKCU:\Software\Policies\Microsoft\Windows\WindowsCopilot|TurnOffWindowsCopilot|DWord|1' 'AI'
+    Add-RegRow 'Windows11AI' 'Copilot off (machine policy)'       'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsCopilot|TurnOffWindowsCopilot|DWord|1' 'AI'
+    Add-RegRow 'Windows11AI' 'No Copilot button on the taskbar'   "$adv|ShowCopilotButton|DWord|0" 'AI'
+    Add-RegRow 'Windows11AI' 'Recall: no snapshots'               'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI|DisableAIDataAnalysis|DWord|1' 'AI' 'Copilot+ PCs only; harmless elsewhere'
+    Add-RegRow 'Windows11AI' 'Recall: cannot be turned on'        'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI|AllowRecallEnablement|DWord|0' 'AI' 'Copilot+ PCs only; harmless elsewhere'
+    Add-RegRow 'Windows11AI' 'Click to Do off'                    'HKCU:\Software\Policies\Microsoft\Windows\WindowsAI|DisableClickToDo|DWord|1' 'AI' 'Copilot+ PCs only; harmless elsewhere'
+
+    # Taskbar, Start, Search
+    Add-RegRow 'Windows11UI' 'Widgets off (policy)'                         'HKLM:\SOFTWARE\Policies\Microsoft\Dsh|AllowNewsAndInterests|DWord|0' 'Nag'
+    Add-RegRow 'Windows11UI' 'No Chat/Teams icon on the taskbar'            'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Chat|ChatIcon|DWord|3' 'Nag'
+    Add-RegRow 'Windows11UI' 'Start: no tips, app promotions and ads'       "$adv|Start_IrisRecommendations|DWord|0" 'Nag'
+    Add-RegRow 'Windows11UI' 'Start: no Microsoft account notifications'    "$adv|Start_AccountNotifications|DWord|0" 'Nag'
+    Add-RegRow 'Windows11UI' 'Start: no recently added / most used apps'    "$adv|Start_TrackProgs|DWord|0" 'Nag'
+    Add-RegRow 'Windows11UI' 'Start/Explorer: no recent files or jump lists' "$adv|Start_TrackDocs|DWord|0" 'Nag' 'Also empties jump lists - keep them if you reopen recent logs from the taskbar' 'Review'
+    Add-RegRow 'Windows11UI' 'Search: no search highlights'                 'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search|EnableDynamicContentInWSB|DWord|0' 'Nag'
+    Add-RegRow 'Windows11UI' 'Search: no Bing web results (user)'           'HKCU:\Software\Microsoft\Windows\CurrentVersion\Search|BingSearchEnabled|DWord|0' 'PhonesHome'
+
+    # File Explorer
+    Add-RegRow 'Windows11UI' 'Explorer opens to This PC'                    "$adv|LaunchTo|DWord|1" 'Nag'
+    Add-RegRow 'Windows11UI' 'Explorer: hide Home'                          'HKCU:\Software\Classes\CLSID\{f874310e-b6b7-47dc-bc84-b9e6b38f5903}|System.IsPinnedToNameSpaceTree|DWord|0' 'Nag'
+    Add-RegRow 'Windows11UI' 'Explorer: hide Gallery'                       'HKCU:\Software\Classes\CLSID\{e88865ea-0e1c-4e20-9aa6-edcd0212c87c}|System.IsPinnedToNameSpaceTree|DWord|0' 'Nag'
+    Add-RegRow 'Windows11UI' 'Explorer: no OneDrive / sync-provider ads'    "$adv|ShowSyncProviderNotifications|DWord|0" 'Nag'
+    Add-RegRow 'Windows11UI' 'Explorer: no Office.com cloud files'          'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer|ShowCloudFilesInQuickAccess|DWord|0' 'PhonesHome'
+
+    # Settings, notifications, lock screen, setup nags
+    Add-RegRow 'Windows11UI' 'Settings: no suggested content (1)'           "$cdm|SubscribedContent-338393Enabled|DWord|0" 'Nag'
+    Add-RegRow 'Windows11UI' 'Settings: no suggested content (2)'           "$cdm|SubscribedContent-353694Enabled|DWord|0" 'Nag'
+    Add-RegRow 'Windows11UI' 'Settings: no suggested content (3)'           "$cdm|SubscribedContent-353696Enabled|DWord|0" 'Nag'
+    Add-RegRow 'Windows11UI' 'Notifications: no tips and suggestions'       "$cdm|SubscribedContent-338389Enabled|DWord|0" 'Nag'
+    Add-RegRow 'Windows11UI' 'No "welcome experience" after updates'        "$cdm|SubscribedContent-310093Enabled|DWord|0" 'Nag'
+    Add-RegRow 'Windows11UI' 'No "finish setting up your device" nag'       'HKCU:\Software\Microsoft\Windows\CurrentVersion\UserProfileEngagement|ScoobeSystemSettingEnabled|DWord|0' 'Nag'
+    Add-RegRow 'Windows11UI' 'Lock screen: no fun facts and tips'           "$cdm|RotatingLockScreenOverlayEnabled|DWord|0" 'Nag'
+    Add-RegRow 'Windows11UI' 'Lock screen: no suggestions'                  "$cdm|SubscribedContent-338387Enabled|DWord|0" 'Nag'
+    Add-RegRow 'Windows11UI' 'No cloud-optimized content (policy)'          'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent|DisableCloudOptimizedContent|DWord|1' 'Nag'
+    Add-RegRow 'Windows11UI' 'No Microsoft account nags (policy)'           'HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent|DisableConsumerAccountStateContent|DWord|1' 'Nag'
+}
+
+# ---------------------------------------------------------------- 7c. Microsoft Edge: keep it patched, keep it quiet
+if (Test-Path "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe") {
+    Write-Host '[7c] Microsoft Edge policies...' -ForegroundColor Cyan
+    $edge = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge'
+    $en = 'Edge stays installed and updated; it will say "managed by your organization", which is expected'
+    Add-RegRow 'Edge' 'Edge: no startup boost'                     "$edge|StartupBoostEnabled|DWord|0" 'Startup' $en
+    Add-RegRow 'Edge' 'Edge: no background running after close'    "$edge|BackgroundModeEnabled|DWord|0" 'Startup'
+    Add-RegRow 'Edge' 'Edge: no sidebar or Copilot button'         "$edge|HubsSidebarEnabled|DWord|0" 'AI'
+    Add-RegRow 'Edge' 'Edge: no shopping assistant'                "$edge|EdgeShoppingAssistantEnabled|DWord|0" 'PhonesHome'
+    Add-RegRow 'Edge' 'Edge: skip the first-run experience'        "$edge|HideFirstRunExperience|DWord|1" 'Nag'
+    Add-RegRow 'Edge' 'Edge: no feature recommendations'           "$edge|ShowRecommendationsEnabled|DWord|0" 'Nag'
+    Add-RegRow 'Edge' 'Edge: no spotlight recommendations'         "$edge|SpotlightExperiencesAndRecommendationsEnabled|DWord|0" 'Nag'
+    Add-RegRow 'Edge' 'Edge: no browsing-based personalization'    "$edge|PersonalizationReportingEnabled|DWord|0" 'PhonesHome'
+    Add-RegRow 'Edge' 'Edge: diagnostic data = required only'      "$edge|DiagnosticData|DWord|1" 'PhonesHome'
+    Add-RegRow 'Edge' 'Edge: no news feed on the new tab page'     "$edge|NewTabPageContentEnabled|DWord|0" 'PhonesHome'
+    Add-RegRow 'Edge' 'Edge: no "follow creators" feature'         "$edge|EdgeFollowEnabled|DWord|0" 'PhonesHome'
 }
 
 # ---------------------------------------------------------------- 8. third-party updates (winget)
@@ -571,7 +677,9 @@ $sections = New-Object System.Collections.Generic.List[string]
 $sections.Add("<h1>Shack PC audit - $env:COMPUTERNAME - $(Get-Date -Format 'yyyy-MM-dd HH:mm')</h1>")
 $sections.Add("<h2>Hardware and OS</h2><pre>$([System.Net.WebUtility]::HtmlEncode(($hw -join "`n")))</pre>")
 $sections.Add('<h2>Station health</h2>' + ($health | ConvertTo-Html -Fragment | Out-String))
-foreach ($cat in 'Office365', 'Telemetry', 'Startup', 'ScheduledTask', 'Service', 'StationTuning', 'Updates') {
+$catOrder = @('Office365', 'WindowsApps', 'Windows11AI', 'Windows11UI', 'Edge', 'Telemetry', 'Startup', 'ScheduledTask', 'Service', 'StationTuning', 'Updates')
+$catOrder += @($Findings | Select-Object -ExpandProperty Category -Unique | Where-Object { $catOrder -notcontains $_ })
+foreach ($cat in $catOrder) {
     $rows = @($Findings | Where-Object Category -eq $cat)
     if ($rows.Count -eq 0) { continue }
     $sections.Add("<h2>$cat ($($rows.Count))</h2>" + ($rows | Select-Object Id, Type, Name, State, Company, Flag, Recommendation, Action, Note, Detail | ConvertTo-Html -Fragment | Out-String))
