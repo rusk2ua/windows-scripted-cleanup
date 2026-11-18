@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.3 - 2026-11-18
+
+### Added: more Copilot removal
+- **`Windows11AI`:** Copilot features inside the kept inbox apps are turned off: Paint's Cocreator, Generative Fill and Image Creator (`HKLM\...\CurrentVersion\Policies\Paint`), and Notepad's AI writing tools (`HKLM\SOFTWARE\Policies\WindowsNotepad\DisableAIFeatures`).
+- **`Edge`:** `Microsoft365CopilotChatIconEnabled = 0`. Microsoft is making this the only control for Edge's Copilot toolbar button; the sidebar policy (`HubsSidebarEnabled`), which the scripts already set, no longer hides it on its own.
+
 ## 1.1.2 - 2026-11-18
 
 ### Fixed

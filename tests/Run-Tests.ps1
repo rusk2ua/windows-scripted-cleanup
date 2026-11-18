@@ -77,6 +77,9 @@ foreach ($c in 'Windows11AI', 'Windows11UI', 'Edge') {
 $dupes = @($Findings | Group-Object { ($_.Detail -split '\|')[0..1] -join '|' } | Where-Object Count -gt 1)
 Assert-True ($dupes.Count -eq 0) "no registry value is set twice (dupes: $(($dupes | ForEach-Object Name) -join ', '))"
 Assert-True (($Findings | Where-Object Name -like '*jump lists*').Recommendation -eq 'Review') 'recent files / jump lists is Review, not Apply'
+foreach ($v in 'DisableCocreator', 'DisableGenerativeFill', 'DisableImageCreator', 'DisableAIFeatures', 'Microsoft365CopilotChatIconEnabled', 'TurnOffWindowsCopilot') {
+    Assert-True (@($Findings | Where-Object { ($_.Detail -split '\|')[1] -eq $v }).Count -ge 1) "Copilot coverage: $v row present (v1.1.3)"
+}
 
 $Findings.Clear(); $script:NextId = 1; $IsWin11 = $false
 Invoke-Expression (Get-Section $src '# ---------------------------------------------------------------- 7b.' '# ---------------------------------------------------------------- 8. third-party')

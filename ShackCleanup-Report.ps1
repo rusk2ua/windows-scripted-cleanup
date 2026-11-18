@@ -519,6 +519,11 @@ if ($IsWin11) {
     Add-RegRow 'Windows11AI' 'Recall: no snapshots'               'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI|DisableAIDataAnalysis|DWord|1' 'AI' 'Copilot+ PCs only; harmless elsewhere'
     Add-RegRow 'Windows11AI' 'Recall: cannot be turned on'        'HKLM:\SOFTWARE\Policies\Microsoft\Windows\WindowsAI|AllowRecallEnablement|DWord|0' 'AI' 'Copilot+ PCs only; harmless elsewhere'
     Add-RegRow 'Windows11AI' 'Click to Do off'                    'HKCU:\Software\Policies\Microsoft\Windows\WindowsAI|DisableClickToDo|DWord|1' 'AI' 'Copilot+ PCs only; harmless elsewhere'
+    # Copilot inside the kept inbox apps
+    Add-RegRow 'Windows11AI' 'Paint: Cocreator off'               'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint|DisableCocreator|DWord|1' 'AI'
+    Add-RegRow 'Windows11AI' 'Paint: Generative Fill off'         'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint|DisableGenerativeFill|DWord|1' 'AI'
+    Add-RegRow 'Windows11AI' 'Paint: Image Creator off'           'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint|DisableImageCreator|DWord|1' 'AI'
+    Add-RegRow 'Windows11AI' 'Notepad: Copilot / writing tools off' 'HKLM:\SOFTWARE\Policies\WindowsNotepad|DisableAIFeatures|DWord|1' 'AI'
 
     # Taskbar, Start, Search
     $widgetsApp = @($allAppx | Where-Object Name -eq 'MicrosoftWindows.Client.WebExperience').Count -gt 0
@@ -561,6 +566,7 @@ if (Test-Path "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe") 
     Add-RegRow 'Edge' 'Edge: no startup boost'                     "$edge|StartupBoostEnabled|DWord|0" 'Startup' $en
     Add-RegRow 'Edge' 'Edge: no background running after close'    "$edge|BackgroundModeEnabled|DWord|0" 'Startup'
     Add-RegRow 'Edge' 'Edge: no sidebar or Copilot button'         "$edge|HubsSidebarEnabled|DWord|0" 'AI'
+    Add-RegRow 'Edge' 'Edge: no Copilot button on the toolbar'     "$edge|Microsoft365CopilotChatIconEnabled|DWord|0" 'AI' 'Replaces the sidebar policy as the Copilot toolbar control from mid-2026'
     Add-RegRow 'Edge' 'Edge: no shopping assistant'                "$edge|EdgeShoppingAssistantEnabled|DWord|0" 'PhonesHome'
     Add-RegRow 'Edge' 'Edge: skip the first-run experience'        "$edge|HideFirstRunExperience|DWord|1" 'Nag'
     Add-RegRow 'Edge' 'Edge: no feature recommendations'           "$edge|ShowRecommendationsEnabled|DWord|0" 'Nag'

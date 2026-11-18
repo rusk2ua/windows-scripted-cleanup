@@ -64,6 +64,8 @@ Education only**, so on Pro the script removes packages one at a time.
 | No Copilot taskbar button | `HKCU\...\Explorer\Advanced\ShowCopilotButton = 0` |
 | Recall: no snapshots, can't be enabled | `HKLM\...\Policies\Microsoft\Windows\WindowsAI\DisableAIDataAnalysis = 1`, `AllowRecallEnablement = 0` |
 | Click to Do off | `HKCU\...\Policies\Microsoft\Windows\WindowsAI\DisableClickToDo = 1` |
+| Paint: Cocreator, Generative Fill, Image Creator off | `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Paint\DisableCocreator`, `DisableGenerativeFill`, `DisableImageCreator` = 1 |
+| Notepad: Copilot writing tools (Rewrite, Summarize, Write) off | `HKLM\SOFTWARE\Policies\WindowsNotepad\DisableAIFeatures = 1` |
 
 Recall and Click to Do only exist on Copilot+ PCs. On other PCs those policies are harmless.
 
@@ -97,7 +99,8 @@ installed and updating, and quiet it with `HKLM\SOFTWARE\Policies\Microsoft\Edge
 |---|---|
 | `StartupBoostEnabled` | 0 |
 | `BackgroundModeEnabled` | 0 |
-| `HubsSidebarEnabled` (sidebar and Copilot button) | 0 |
+| `HubsSidebarEnabled` (sidebar) | 0 |
+| `Microsoft365CopilotChatIconEnabled` (Copilot toolbar button) | 0 |
 | `EdgeShoppingAssistantEnabled` | 0 |
 | `HideFirstRunExperience` | 1 |
 | `ShowRecommendationsEnabled` | 0 |
