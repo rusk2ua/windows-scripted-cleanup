@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.2 - 2026-11-18
+
+### Fixed
+- **Report:** Office scheduled tasks and services recommended `Remove` that are already disabled are now `Keep`. On the G10, the OneDrive tasks belonging to the disabled built-in Administrator account kept reappearing as actions.
+- **Report:** Edge Game Assist is now `Review` instead of `Remove`. Edge reinstalls it during its own updates, so removing it just repeats every time.
+
 ## 1.1.1 - 2026-11-18
 
 From the first Windows 11 run (GMKtec G10, Windows 11 Pro):

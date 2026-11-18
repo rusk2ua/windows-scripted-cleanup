@@ -113,7 +113,7 @@ function Add-Finding {
     param($Category, $Type, $Name, $Location = '', $ItemName = '', $Detail = '', $Company = '',
           $State = '', $Flag = 'Info', $Recommendation = 'Keep', $Note = '')
     # Already in the target state? Then there's nothing to do - recommend Keep so it doesn't show up as an action.
-    if ($Recommendation -eq 'Disable' -and "$State" -match '^Disabled') {
+    if (($Recommendation -eq 'Disable' -or ($Recommendation -eq 'Remove' -and $Type -in 'ScheduledTask', 'Service')) -and "$State" -match '^Disabled') {
         $Recommendation = 'Keep'
         $Note = (@($Note, 'Already disabled') | Where-Object { $_ }) -join ' - '
     }
@@ -421,7 +421,7 @@ $appx = @(
     @{ N = 'Microsoft.XboxSpeechToTextOverlay';          C = 'WindowsApps'; R = 'Remove'; Note = 'Xbox speech overlay' }
     @{ N = 'Microsoft.Xbox.TCUI';                        C = 'WindowsApps'; R = 'Remove'; Note = 'Xbox UI components' }
     @{ N = 'Microsoft.XboxApp';                          C = 'WindowsApps'; R = 'Remove'; Note = 'Xbox Console Companion (Windows 10)' }
-    @{ N = 'Microsoft.Edge.GameAssist';                  C = 'WindowsApps'; R = 'Remove'; Note = 'Edge Game Assist' }
+    @{ N = 'Microsoft.Edge.GameAssist';                  C = 'WindowsApps'; R = 'Review'; Note = 'Edge Game Assist - Edge reinstalls it during its own updates; harmless outside games' }
 )
 $allAppx = @(Get-AppxPackage -AllUsers -ErrorAction SilentlyContinue)
 $prov    = @(Get-AppxProvisionedPackage -Online -ErrorAction SilentlyContinue)

@@ -41,10 +41,10 @@ driver updates.
 | AI | Copilot (`Microsoft.Copilot`), Copilot provider, Cortana |
 | Content and ads | News, Weather, Bing Search, Widgets (`MicrosoftWindows.Client.WebExperience`), Tips, Get Help, Feedback Hub, Maps |
 | Apps | Clipchamp, Solitaire, Sticky Notes, Journal, Power Automate, Dev Home, Family Safety, Movies & TV |
-| Phone Link and Xbox | Phone Link, cross-device helper, Xbox app, Game Bar, Xbox sign-in, speech overlay and UI components, Edge Game Assist |
+| Phone Link and Xbox | Phone Link, cross-device helper, Xbox app, Game Bar, Xbox sign-in, speech overlay and UI components |
 | Microsoft account / Office | Microsoft 365 (Office) hub, OneNote, new Outlook, Teams, Skype, Mail & Calendar, To Do, People |
 
-**Review** (your call): Media Player (keep it if you play back audio recordings on this PC) and Quick Assist (keep it if someone helps you remotely this way).
+**Review** (your call): Media Player (keep it if you play back audio recordings on this PC), Quick Assist (keep it if someone helps you remotely this way), and Edge Game Assist (Edge reinstalls it during its own updates, so removing it doesn't stick).
 
 Packages are removed for all users and from the provisioning image, so new user accounts don't get them.
 A package Windows marks **non-removable** is listed as `Keep` with a note.

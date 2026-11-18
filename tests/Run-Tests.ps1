@@ -90,6 +90,15 @@ Invoke-Expression (Get-Section $src '# -----------------------------------------
 $sb = $Findings | Where-Object Name -like '*startup boost*'
 Assert-True ($sb.Recommendation -eq 'Keep' -and $sb.Action -eq '') 'a value already at its target is Keep with a blank Action'
 
+Write-Host 'Disabled Office tasks are Keep (v1.1.2)'
+$Findings.Clear(); $script:NextId = 1
+Add-Finding -Category 'Office365' -Type 'ScheduledTask' -Name '\OneDrive Reporting Task-S-1-5-21-1-2-3-500' -State 'Disabled' -Recommendation 'Remove'
+Add-Finding -Category 'Office365' -Type 'ScheduledTask' -Name '\OneDrive Startup Task-S-1-5-21-1-2-3-1001' -State 'Ready' -Recommendation 'Remove'
+Add-Finding -Category 'Office365' -Type 'Appx' -Name 'Microsoft.OutlookForWindows' -State 'Disabled' -Recommendation 'Remove'
+Assert-True ($Findings[0].Recommendation -eq 'Keep' -and $Findings[0].Action -eq '') 'a disabled Office task recommended Remove becomes Keep'
+Assert-True ($Findings[1].Action -eq 'Remove') 'an enabled Office task stays Remove'
+Assert-True ($Findings[2].Action -eq 'Remove') 'Remove on non-task types is unaffected'
+
 Write-Host 'Store apps'
 $Findings.Clear(); $script:NextId = 1
 function Get-AppxPackage { @(
@@ -115,6 +124,7 @@ Assert-True (($Findings | Where-Object Name -eq 'Microsoft.Copilot').Action -eq 
 Assert-True (($Findings | Where-Object Name -eq 'Clipchamp.Clipchamp').State -eq 'Provisioned') 'a provisioned-only package is listed'
 Assert-True (($Findings | Where-Object Name -eq 'MicrosoftWindows.CrossDevice').Recommendation -eq 'Keep') 'a non-removable package is Keep'
 Assert-True (($Findings | Where-Object Name -eq 'Microsoft.ZuneMusic').Action -eq '') 'Media Player is Review (blank Action)'
+Assert-True (($appx | Where-Object { $_.N -eq 'Microsoft.Edge.GameAssist' }).R -eq 'Review') 'Edge Game Assist is Review (Edge reinstalls it) (v1.1.2)'
 
 Write-Host 'Act: a protected registry value is CHECK, not FAILED'
 $act = Get-Content (Join-Path $root 'ShackCleanup-Act.ps1') -Raw
