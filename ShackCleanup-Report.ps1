@@ -494,6 +494,7 @@ $tel = @(
     @{ N = 'No preinstalled promo apps'; D = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|PreInstalledAppsEnabled|DWord|0' }
     @{ N = 'No OEM promo apps'; D = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager|OemPreInstalledAppsEnabled|DWord|0' }
 )
+if ($IsWin11) { $tel = @($tel | Where-Object { $_.D -notlike '*\Windows Feeds|*' }) }   # News and Interests is Windows 10 only
 foreach ($t in $tel) {
     $parts = $t.D -split '\|'
     $cur = try { (Get-ItemProperty -Path $parts[0] -Name $parts[1] -ErrorAction Stop).($parts[1]) } catch { '<not set>' }
@@ -520,7 +521,10 @@ if ($IsWin11) {
     Add-RegRow 'Windows11AI' 'Click to Do off'                    'HKCU:\Software\Policies\Microsoft\Windows\WindowsAI|DisableClickToDo|DWord|1' 'AI' 'Copilot+ PCs only; harmless elsewhere'
 
     # Taskbar, Start, Search
-    Add-RegRow 'Windows11UI' 'Widgets off (policy)'                         'HKLM:\SOFTWARE\Policies\Microsoft\Dsh|AllowNewsAndInterests|DWord|0' 'Nag'
+    $widgetsApp = @($allAppx | Where-Object Name -eq 'MicrosoftWindows.Client.WebExperience').Count -gt 0
+    if ($widgetsApp) {
+        Add-RegRow 'Windows11UI' 'Widgets off (policy)' 'HKLM:\SOFTWARE\Policies\Microsoft\Dsh|AllowNewsAndInterests|DWord|0' 'Nag' 'Windows may block scripts from setting this; removing the Widgets app (WindowsApps) does the job either way'
+    }
     Add-RegRow 'Windows11UI' 'No Chat/Teams icon on the taskbar'            'HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Chat|ChatIcon|DWord|3' 'Nag'
     Add-RegRow 'Windows11UI' 'Start: no tips, app promotions and ads'       "$adv|Start_IrisRecommendations|DWord|0" 'Nag'
     Add-RegRow 'Windows11UI' 'Start: no Microsoft account notifications'    "$adv|Start_AccountNotifications|DWord|0" 'Nag'

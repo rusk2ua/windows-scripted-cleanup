@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.1 - 2026-11-18
+
+From the first Windows 11 run (GMKtec G10, Windows 11 Pro):
+
+### Fixed
+- **Act:** writes that Windows refuses even from an elevated session with a permissive key ACL (`UnauthorizedAccessException`) are now logged as `CHECK: Windows blocks scripts from setting this value...` instead of `FAILED`. On the G10 this hit the Widgets (`Dsh\AllowNewsAndInterests`) and News and Interests (`Windows Feeds\EnableFeeds`) policies. The likely cause is Windows' User Choice Protection driver; `gpedit.msc` can still set them.
+- **Report:** the Windows 10-only News and Interests row is no longer offered on Windows 11, and the Widgets policy row only appears while the Widgets app is installed. Removing the app is what actually gets rid of Widgets.
+- **Act:** a Store app that's already gone now logs `OK (already gone)` instead of `OK`.
+
 ## 1.1.0 - 2026-11-17
 
 ### Added: Windows 11 support

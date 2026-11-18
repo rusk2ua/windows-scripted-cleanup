@@ -52,11 +52,25 @@ Invoke-Expression (Get-Section $src '$tel = @(' '# -----------------------------
 Test-RegistryRows 'Telemetry'
 Assert-True ($Findings.Count -eq 29) "29 telemetry rows (got $($Findings.Count))"
 
+Write-Host 'Telemetry rows on Windows 11'
+$Findings.Clear(); $script:NextId = 1; $IsWin11 = $true
+Invoke-Expression (Get-Section $src '$tel = @(' '# ---------------------------------------------------------------- 7b.')
+Assert-True (@($Findings | Where-Object { $_.Detail -like '*\Windows Feeds|*' }).Count -eq 0) 'Windows 10-only News and Interests row is skipped on Windows 11 (v1.1.1)'
+Assert-True ($Findings.Count -eq 28) "28 telemetry rows on Windows 11 (got $($Findings.Count))"
+$IsWin11 = $null
+
 Write-Host 'Windows 11 and Edge rows'
 $Findings.Clear(); $script:NextId = 1
 $IsWin11 = $true; ${env:ProgramFiles(x86)} = 'C:\Program Files (x86)'; $env:ProgramFiles = 'C:\Program Files'
 Invoke-Expression (Get-Section $src '# ---------------------------------------------------------------- 7b.' '# ---------------------------------------------------------------- 8. third-party')
 Test-RegistryRows 'Windows 11 + Edge'
+Assert-True (@($Findings | Where-Object { $_.Detail -like '*\Dsh|*' }).Count -eq 0) 'no Widgets policy row when the Widgets app is not installed (v1.1.1)'
+$Findings.Clear(); $script:NextId = 1
+$allAppx = @([pscustomobject]@{ Name = 'MicrosoftWindows.Client.WebExperience' })
+Invoke-Expression (Get-Section $src '# ---------------------------------------------------------------- 7b.' '# ---------------------------------------------------------------- 8. third-party')
+Assert-True (@($Findings | Where-Object { $_.Detail -like '*\Dsh|*' }).Count -eq 1) 'Widgets policy row present when the Widgets app is installed'
+Test-RegistryRows 'Windows 11 + Edge (with Widgets)'
+$allAppx = @()
 foreach ($c in 'Windows11AI', 'Windows11UI', 'Edge') {
     Assert-True (@($Findings | Where-Object Category -eq $c).Count -gt 0) "category $c present"
 }
@@ -101,6 +115,29 @@ Assert-True (($Findings | Where-Object Name -eq 'Microsoft.Copilot').Action -eq 
 Assert-True (($Findings | Where-Object Name -eq 'Clipchamp.Clipchamp').State -eq 'Provisioned') 'a provisioned-only package is listed'
 Assert-True (($Findings | Where-Object Name -eq 'MicrosoftWindows.CrossDevice').Recommendation -eq 'Keep') 'a non-removable package is Keep'
 Assert-True (($Findings | Where-Object Name -eq 'Microsoft.ZuneMusic').Action -eq '') 'Media Player is Review (blank Action)'
+
+Write-Host 'Act: a protected registry value is CHECK, not FAILED'
+$act = Get-Content (Join-Path $root 'ShackCleanup-Act.ps1') -Raw
+$tmp = Join-Path ([IO.Path]::GetTempPath()) 'shackcleanup-act-test.ps1'
+$harness = @(
+    '[CmdletBinding(SupportsShouldProcess = $true)] param()'
+    '$ChangeLog = Join-Path ([IO.Path]::GetTempPath()) ''shackcleanup-test-changelog.csv'''
+    '$script:Log = New-Object System.Collections.Generic.List[object]'
+    '$script:Handled = New-Object ''System.Collections.Generic.HashSet[string]'''
+    (Get-Section $act 'function Write-Change' '# ---------------------------------------------------------------- 0. restore point')
+    'function Get-RegState { param($Path, $Name) @{ Exists = $false; Kind = ''''; Value = ''<absent>'' } }'
+    'function New-ItemProperty { throw (New-Object System.UnauthorizedAccessException ''Attempted to perform an unauthorized operation.'') }'
+    'function New-Item { }'
+    'function Test-Path { param($Path) $true }'
+    'function Write-Host { }'
+    'Set-LoggedRegistry -FindingId 99 -Path ''HKLM:\SOFTWARE\Policies\Microsoft\Dsh'' -Name ''AllowNewsAndInterests'' -Type DWord -Value 0'
+    '($script:Log | Select-Object -Last 1).Result'
+    'Remove-Item $ChangeLog -ErrorAction SilentlyContinue'
+) -join "`n"
+Set-Content -Path $tmp -Value $harness -Encoding ASCII
+$result = & $tmp
+Remove-Item $tmp -ErrorAction SilentlyContinue
+Assert-True ("$result" -like 'CHECK: Windows blocks scripts*') "UnauthorizedAccessException is logged as CHECK with an explanation (got: $result)"
 
 Write-Host ''
 Write-Host "Passed $script:Pass, failed $script:Fail"

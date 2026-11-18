@@ -71,13 +71,18 @@ Recall and Click to Do only exist on Copilot+ PCs. On other PCs those policies a
 
 | Area | Settings |
 |---|---|
-| Taskbar | Widgets off (`Dsh\AllowNewsAndInterests = 0`), no Chat/Teams icon |
+| Taskbar | Widgets off (`Dsh\AllowNewsAndInterests = 0`, offered only while the Widgets app is installed), no Chat/Teams icon |
 | Start | No tips/app promotions (`Start_IrisRecommendations`), no account notifications, no recently added / most used apps. *Recent files and jump lists* (`Start_TrackDocs`) is **Review**, because turning it off also empties taskbar jump lists. |
 | Search | No search highlights, no Bing web results |
 | File Explorer | Opens to This PC; Home and Gallery hidden; no OneDrive/sync-provider ads; no Office.com cloud files |
 | Settings / notifications | No suggested content in Settings, no tips and suggestions, no post-update "welcome experience", no "finish setting up your device" |
 | Lock screen | No fun facts, tips or suggestions |
 | Cloud content | No cloud-optimized content, no Microsoft account nags |
+
+Windows may refuse a script's write to the Widgets policy even from an elevated window with full key
+permissions (seen on Windows 11 Pro, Nov 2026; likely Windows' User Choice Protection driver). The Act
+script logs that as `CHECK`, not `FAILED`. Removing the Widgets app gets rid of Widgets regardless, and
+`gpedit.msc` > Windows Components > Widgets > *Allow widgets = Disabled* still sets the policy.
 
 Windows 11 Pro has no supported way to remove Start's *Recommended* section entirely: the
 `HideRecommendedSection` policy only works on SE, Education and Enterprise. With these settings applied,

@@ -109,6 +109,10 @@ function Set-LoggedRegistry {
             if (-not (Test-Path $Path)) { New-Item -Path $Path -Force | Out-Null }
             New-ItemProperty -Path $Path -Name $Name -PropertyType $Type -Value $Value -Force -ErrorAction Stop | Out-Null
             Write-Change $FindingId $Kind $Path $Name "$($old.Kind):$($old.Value)" "$($Type):$newDisplay"
+        } catch [System.UnauthorizedAccessException] {
+            # Elevated and the key ACL allows it, yet Windows refuses: the value is protected against scripted writes
+            # (Windows' User Choice Protection driver does this for some Widgets/News and taskbar settings).
+            Write-Change $FindingId $Kind $Path $Name $old.Value $newDisplay 'CHECK: Windows blocks scripts from setting this value. Set it with gpedit.msc or the Settings app if you still need it.'
         } catch { Write-Change $FindingId $Kind $Path $Name $old.Value $newDisplay "FAILED: $($_.Exception.Message)" }
     } else { Write-Change $FindingId $Kind $Path $Name $old.Value $newDisplay 'WhatIf' }
 }
@@ -296,6 +300,11 @@ if ($appxRows.Count -gt 0) { Write-Host '[4] Removing Store apps...' -Foreground
 foreach ($r in $appxRows) {
     if (-not $PSCmdlet.ShouldProcess($r.ItemName, 'Remove AppX package (all users + provisioned)')) { Write-Change $r.Id 'Appx' $r.ItemName '' $r.State 'removed' 'WhatIf' $false; continue }
     $errs = @()
+    if (-not @(Get-AppxPackage -AllUsers -Name $r.ItemName -ErrorAction SilentlyContinue).Count -and
+        -not @(Get-AppxProvisionedPackage -Online | Where-Object DisplayName -eq $r.ItemName).Count) {
+        Write-Change $r.Id 'Appx' $r.ItemName '' $r.State 'removed' 'OK (already gone)' $false
+        continue
+    }
     foreach ($pkg in @(Get-AppxPackage -AllUsers -Name $r.ItemName -ErrorAction SilentlyContinue)) {
         try { Remove-AppxPackage -Package $pkg.PackageFullName -AllUsers -ErrorAction Stop; continue } catch {}
         # -AllUsers fails (often 0x80070002) when a stale or deleted profile still has the package registered.

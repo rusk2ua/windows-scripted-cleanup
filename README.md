@@ -99,7 +99,7 @@ See [docs/safety-and-undo.md](docs/safety-and-undo.md).
 
 - **On Windows 10 (shack NUC, Nov 2026):** the full report, review and Act cycle. That run is where v1.0.1 to v1.0.6 came from: app removal with a per-user fallback, winget source pinning, and skipping per-user packages.
 - **Offline:** `tests\Run-Tests.ps1` runs under PowerShell 7 and in the GitHub Windows PowerShell 5.1 workflow. It checks that every script parses and is ASCII-only; that every registry row matches the Act script's format with no value set twice; that Windows 11 rows appear only on Windows 11; that already-set values become `Keep`; and that the keep-list apps (Calculator, Store, App Installer and so on) are never offered for removal.
-- **Not yet run on Windows 11 hardware.** The Windows 11 rows (v1.1.0) are new. Start with the report and `-WhatIf`, and check `Report.html` before the real run.
+- **On Windows 11 Pro (GMKtec G10, Nov 2026):** the full cycle on a fresh install. 105 of 107 actions succeeded; the two Widgets/News policy writes Windows refused led to v1.1.1.
 
 ```powershell
 powershell -NoProfile -File .\tests\Run-Tests.ps1
