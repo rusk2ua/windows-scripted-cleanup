@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.1 - 2026-11-21
+
+From the first 4-hour capture on the G10:
+
+### Fixed
+- **NetCapture: most connections had no name.** The DNS Client log writes IPv4 answers as `::ffff:20.42.65.90`, and the address pattern skipped any IPv4 preceded by a colon. So 382 of 449 destinations, including every DiagTrack and Defender connection, came out as "No DNS name". The parsing now lives in a tested function, and the Windows DNS cache is read every minute as a second source of names. `DnsQueries.csv` now also keeps the raw answers.
+
+### Added
+- Connections from programs that shouldn't be running at all are now **Should be gone**, whatever they contact. `MicrosoftStartFeedProvider` (the Start/Widgets content feed) is added to that list.
+- Connections made by **NordVPN Threat Protection** are labelled as relayed. It proxies web traffic for other programs, which hides the real program; pause it during a capture for clean attribution.
+- `Report.html` shows how many connections got a name, as a quick check that name matching worked.
+
 ## 1.2.0 - 2026-11-21
 
 ### Added

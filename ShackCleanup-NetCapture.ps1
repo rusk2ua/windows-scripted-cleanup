@@ -55,8 +55,21 @@ $HostRules = @(
     @{ P = '(^|\.)(winget\.microsoft\.com|github\.com|githubusercontent\.com|powershellgallery\.com|nuget\.org)$|winget\.azureedge\.net'; C = 'winget / GitHub / PowerShell Gallery'; V = 'Expected'; N = 'Package and repo traffic you started' }
     @{ P = '(^|\.)(microsoft\.com|windows\.com|windows\.net|microsoft\.net|azure\.com|azureedge\.net|azurefd\.net|trafficmanager\.net|akamaized\.net|akamaiedge\.net|akadns\.net|msedge\.net)$'; C = 'Microsoft (other)'; V = 'Review'; N = 'Microsoft or a Microsoft CDN - check which process' }
 )
+# DNS Client log answers look like 'type:  5 a.example.com;::ffff:20.42.65.90;2603:1030::1;'
+# (IPv4 addresses come wrapped as ::ffff:x.x.x.x - v1.2.0 missed those, so most connections had no name)
+function Get-DnsResultIps {
+    param([string]$QueryResults)
+    $ips = foreach ($m in [regex]::Matches("$QueryResults", '(?<![\w.])((\d{1,3}\.){3}\d{1,3})(?![\w.])|(?<![\w:.])([0-9a-f]{1,4}(:[0-9a-f]{0,4}){2,7})(?![\w.])')) { $m.Value }
+    return @($ips | Where-Object { $_ } | Select-Object -Unique)
+}
 function Get-HostCategory {
     param([string]$HostName, [string]$Ip, [string]$Process)
+    if ($Process -and ($ShouldBeGoneProcesses -contains $Process)) {
+        return [pscustomobject]@{ Category = 'Removed component'; Verdict = 'Should be gone'; Note = "$Process should not be running after the cleanup - whatever it contacts" }
+    }
+    if ($Process -match '^nordsec-threatprotection') {
+        return [pscustomobject]@{ Category = 'Relayed by NordVPN Threat Protection'; Verdict = 'Review'; Note = 'Threat Protection relays web traffic for other programs, hiding which program it was - pause it during the capture for clean attribution' }
+    }
     if ($Ip -and $Ip -match $PrivatePattern) { return [pscustomobject]@{ Category = 'LAN / local'; Verdict = 'LAN'; Note = 'Stays on your network' } }
     $h = "$HostName".Trim().TrimEnd('.').ToLowerInvariant()
     if (-not $h) { return [pscustomobject]@{ Category = 'No DNS name'; Verdict = 'Review'; Note = 'Connected by IP address; see the reverse-DNS name' } }
@@ -73,7 +86,8 @@ function Get-HostCategory {
 }
 # Programs that should not be running at all after the cleanup
 $ShouldBeGoneProcesses = 'OneDrive', 'Teams', 'ms-teams', 'Widgets', 'WidgetService', 'PhoneExperienceHost', 'YourPhone', 'CrossDeviceService',
-                         'CompatTelRunner', 'DeviceCensus', 'GameBar', 'GameBarFTServer', 'XboxPcApp', 'Copilot', 'M365Copilot', 'Clipchamp', 'olk', 'HxOutlook'
+                         'CompatTelRunner', 'DeviceCensus', 'GameBar', 'GameBarFTServer', 'XboxPcApp', 'Copilot', 'M365Copilot', 'Clipchamp', 'olk', 'HxOutlook',
+                         'MicrosoftStartFeedProvider'
 # ---------------------------------------------------------------- end host classification
 
 # ---------------------------------------------------------------- prerequisites
@@ -173,6 +187,13 @@ function Read-TcpSample {
     }
 }
 
+function Read-DnsCache {
+    # Second source of names: the Windows DNS cache (catches answers the log didn't show)
+    foreach ($c in @(Get-DnsClientCache -ErrorAction SilentlyContinue)) {
+        if ($c.Type -in 1, 28 -and $c.Data -and -not $ipName.ContainsKey("$($c.Data)")) { $ipName["$($c.Data)"] = "$($c.Entry)".TrimEnd('.') }
+    }
+}
+
 function Read-Dns {
     $xp = "*[System[(EventID=3008) and (EventRecordID > $($script:LastDnsId))]]"
     $events = @(); try { $events = @(Get-WinEvent -LogName $DnsLogName -FilterXPath $xp -ErrorAction Stop) } catch {}
@@ -182,12 +203,9 @@ function Read-Dns {
         $q = "$($d['QueryName'])".TrimEnd('.')
         if (-not $q) { continue }
         $res = "$($d['QueryResults'])"
-        foreach ($m in [regex]::Matches($res, '(?<![\w:])((\d{1,3}\.){3}\d{1,3})|([0-9a-f]{1,4}(:[0-9a-f]{0,4}){2,7})')) {
-            $ip = $m.Value -replace '^::ffff:', ''
-            if (-not $ipName.ContainsKey($ip)) { $ipName[$ip] = $q }
-        }
+        foreach ($ip in (Get-DnsResultIps $res)) { if (-not $ipName.ContainsKey($ip)) { $ipName[$ip] = $q } }
         $pi = Resolve-Pid ([int]$e.ProcessId) $null
-        $dnsRows.Add([pscustomobject]@{ Time = $e.TimeCreated; Name = $q; Status = $d['QueryStatus']; RequestedByPid = $e.ProcessId; Process = $pi.Name; Services = $pi.Services })
+        $dnsRows.Add([pscustomobject]@{ Time = $e.TimeCreated; Name = $q; Status = $d['QueryStatus']; Results = $res; RequestedByPid = $e.ProcessId; Process = $pi.Name; Services = $pi.Services })
     }
 }
 
@@ -223,6 +241,7 @@ try {
     while ((Get-Date) -lt $deadline) {
         Update-PidMap
         Read-Dns
+        Read-DnsCache
         if ($useAudit) { Read-Audit } else { Read-TcpSample }
         $left = [int]($deadline - (Get-Date)).TotalMinutes
         Write-Progress -Activity 'Network capture' -Status "$left min left - $($conns.Count) connections, $($dnsRows.Count) lookups" -PercentComplete ([math]::Min(100, 100 * ((Get-Date) - $start).TotalMinutes / $Minutes))
@@ -293,6 +312,8 @@ finally {
     $sec = New-Object System.Collections.Generic.List[string]
     $mins = [int]((Get-Date) - $start).TotalMinutes
     $sec.Add("<h1>Network capture - $env:COMPUTERNAME - $(Get-Date -Format 'yyyy-MM-dd HH:mm')</h1>")
+    $named = @($rows | Where-Object { $_.Host }).Count
+    $sec.Add("<p>Named destinations: $named of $($rows.Count) connections. Programs that connect by IP address (VPNs, remote desktop) stay unnamed; Windows services should almost all have names.</p>")
     $sec.Add("<p>Captured $mins minutes; $($rows.Count) outbound connections, $($dnsRows.Count) DNS lookups. Method: $(if ($useAudit) { 'connection auditing (every connection)' } else { 'TCP sampling every ' + $PollSeconds + ' s' }).</p>")
     $sec.Add('<h2>Verdicts</h2>' + ($summary | Group-Object Verdict | Select-Object @{ n = 'Verdict'; e = { $_.Name } }, @{ n = 'Destinations'; e = { $_.Count } }, @{ n = 'Connections'; e = { ($_.Group | Measure-Object Count -Sum).Sum } } | ConvertTo-Html -Fragment | Out-String))
     if ($badProcs) { $sec.Add('<h2>Programs that should not be running</h2>' + ($badProcs | ConvertTo-Html -Fragment | Out-String)) }

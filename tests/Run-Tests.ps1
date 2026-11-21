@@ -182,6 +182,15 @@ $cases = @(
     @{ H = ''; I = '100.101.102.103'; V = 'LAN'; C = 'LAN / local' }
 )
 Assert-True ($cases.Count -eq 24) "24 classification cases (not flattened: $($cases.Count))"
+$ips = @(Get-DnsResultIps 'type:  5 v10.events.data.microsoft.com;type:  5 onedsc.trafficmanager.net;::ffff:20.42.65.90;2603:1030:7::749;')
+Assert-True ($ips -contains '20.42.65.90') "DNS answer parsing finds IPv4 written as ::ffff:x.x.x.x (v1.2.1 regression; got: $($ips -join ', '))"
+Assert-True ($ips -contains '2603:1030:7::749') 'DNS answer parsing finds IPv6'
+Assert-True (@(Get-DnsResultIps '20.1.2.3;20.1.2.3;').Count -eq 1) 'DNS answer parsing de-duplicates'
+Assert-True (@($ips | Where-Object { $_ -like '*events*' }).Count -eq 0) 'DNS answer parsing ignores names'
+$r = Get-HostCategory -HostName '' -Ip '23.221.227.111' -Process 'MicrosoftStartFeedProvider'
+Assert-True ($r.Verdict -eq 'Should be gone') "a removed component is Should be gone whatever it contacts (got $($r.Verdict))"
+$r = Get-HostCategory -HostName 'www.google.com' -Ip '142.250.31.103' -Process 'nordsec-threatprotection-service'
+Assert-True ($r.Category -eq 'Relayed by NordVPN Threat Protection') "Threat Protection relays are labelled as such (got $($r.Category))"
 $r = Get-HostCategory -HostName 'ntp.msn.com' -Ip '13.107.1.1' -Process 'msedge'
 Assert-True ($r.Verdict -eq 'Review') "MSN from Edge itself is Review, not Should be gone (got $($r.Verdict))"
 $r = Get-HostCategory -HostName 'ntp.msn.com' -Ip '13.107.1.1' -Process 'svchost'
