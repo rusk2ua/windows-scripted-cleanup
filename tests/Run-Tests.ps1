@@ -128,6 +128,7 @@ Assert-True (($Findings | Where-Object Name -eq 'Clipchamp.Clipchamp').State -eq
 Assert-True (($Findings | Where-Object Name -eq 'MicrosoftWindows.CrossDevice').Recommendation -eq 'Keep') 'a non-removable package is Keep'
 Assert-True (($Findings | Where-Object Name -eq 'Microsoft.ZuneMusic').Action -eq '') 'Media Player is Review (blank Action)'
 Assert-True (($appx | Where-Object { $_.N -eq 'Microsoft.Edge.GameAssist' }).R -eq 'Review') 'Edge Game Assist is Review (Edge reinstalls it) (v1.1.2)'
+Assert-True (($appx | Where-Object { $_.N -eq 'Microsoft.StartExperiencesApp' }).R -eq 'Remove') 'Start feed package (MicrosoftStartFeedProvider) is Remove (v1.2.2)'
 
 Write-Host 'Act: a protected registry value is CHECK, not FAILED'
 $act = Get-Content (Join-Path $root 'ShackCleanup-Act.ps1') -Raw

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2 - 2026-11-21
+
+### Added
+- **Report:** `Microsoft.StartExperiencesApp` is set to Remove. It contains `MicrosoftStartFeedProvider`, the Start menu news feed and phone panel, which the G10 network capture caught connecting to content servers. Start itself is a separate component and isn't affected.
+
 ## 1.2.1 - 2026-11-21
 
 From the first 4-hour capture on the G10:

@@ -39,7 +39,7 @@ driver updates.
 | Group | Packages |
 |---|---|
 | AI | Copilot (`Microsoft.Copilot`), Copilot provider, Cortana |
-| Content and ads | News, Weather, Bing Search, Widgets (`MicrosoftWindows.Client.WebExperience`), Tips, Get Help, Feedback Hub, Maps |
+| Content and ads | News, Weather, Bing Search, Widgets (`MicrosoftWindows.Client.WebExperience`), Start feed (`Microsoft.StartExperiencesApp`), Tips, Get Help, Feedback Hub, Maps |
 | Apps | Clipchamp, Solitaire, Sticky Notes, Journal, Power Automate, Dev Home, Family Safety, Movies & TV |
 | Phone Link and Xbox | Phone Link, cross-device helper, Xbox app, Game Bar, Xbox sign-in, speech overlay and UI components |
 | Microsoft account / Office | Microsoft 365 (Office) hub, OneNote, new Outlook, Teams, Skype, Mail & Calendar, To Do, People |

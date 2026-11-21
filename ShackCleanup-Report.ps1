@@ -398,6 +398,7 @@ $appx = @(
     @{ N = 'Microsoft.BingWeather';                      C = 'WindowsApps'; R = 'Remove'; Note = 'Weather - phones home for content' }
     @{ N = 'Microsoft.BingSearch';                       C = 'WindowsApps'; R = 'Remove'; Note = 'Bing Search app' }
     @{ N = 'MicrosoftWindows.Client.WebExperience';      C = 'WindowsApps'; R = 'Remove'; Note = 'Widgets board (Windows Web Experience Pack)' }
+    @{ N = 'Microsoft.StartExperiencesApp';              C = 'WindowsApps'; R = 'Remove'; Note = 'Start menu news feed and phone panel (MicrosoftStartFeedProvider) - Start itself is unaffected' }
     @{ N = 'Microsoft.Getstarted';                       C = 'WindowsApps'; R = 'Remove'; Note = 'Tips' }
     @{ N = 'Microsoft.GetHelp';                          C = 'WindowsApps'; R = 'Remove'; Note = 'Get Help' }
     @{ N = 'Microsoft.WindowsFeedbackHub';               C = 'WindowsApps'; R = 'Remove'; Note = 'Feedback Hub' }
