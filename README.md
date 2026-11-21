@@ -24,6 +24,7 @@ said yes, and every reversible change can be rolled back.
 | [`ShackCleanup-Report.ps1`](ShackCleanup-Report.ps1) | Inventories hardware, station health, Office 365 remnants, startup items, scheduled tasks, services, telemetry settings, outbound connections, and pending `winget` updates. Writes `Findings.csv` + `Report.html`. | **No.** The only exception: it installs Microsoft's `Microsoft.WinGet.Client` PowerShell module for the current user if it's missing (`-NoModuleInstall` skips that). |
 | [`ShackCleanup-Act.ps1`](ShackCleanup-Act.ps1) | Applies the actions you approved in `Findings.csv`. Creates a restore point first, exports the affected registry keys, and logs every change to `ChangeLog.csv`. Supports `-WhatIf`. | Yes |
 | [`ShackCleanup-Undo.ps1`](ShackCleanup-Undo.ps1) | Reads `ChangeLog.csv` and reverses registry, startup, scheduled-task, service, and power changes. | Yes (puts things back) |
+| [`ShackCleanup-NetCapture.ps1`](ShackCleanup-NetCapture.ps1) | Records every outbound connection for a set time (4 h by default), ties each one to the program or service that made it, and marks each destination Should be gone, Review, Expected or LAN. | No: connection auditing and DNS logging are turned on for the capture and restored afterwards |
 
 ## Quick start
 
@@ -93,11 +94,13 @@ See [docs/safety-and-undo.md](docs/safety-and-undo.md).
 | [Classification rules](docs/classification-rules.md) | How items get flagged, the station-critical allowlist, and how to customize it |
 | [Safety and undo](docs/safety-and-undo.md) | Restore points, change log, undo |
 | [Troubleshooting](docs/troubleshooting.md) | Common problems and fixes |
+| [Network capture](docs/network-capture.md) | Checking on the wire that nothing unwanted is still phoning home |
 | [Example: shack NUC assessment](docs/station/nuc7i3bnh-hardware-assessment.md) | A real report's `Hardware.txt` turned into an upgrade plan (NUC7i3BNH: BIOS, RAM, Windows 10 ESU timeline) |
 
 ## What has and hasn't been tested
 
 - **On Windows 10 (shack NUC, Nov 2026):** the full report, review and Act cycle. That run is where v1.0.1 to v1.0.6 came from: app removal with a per-user fallback, winget source pinning, and skipping per-user packages.
+- **Network capture (v1.2.0):** its destination classifier and report builder are tested offline; the capture itself (auditing, DNS log, restore) has not yet run on Windows.
 - **Offline:** `tests\Run-Tests.ps1` runs under PowerShell 7 and in the GitHub Windows PowerShell 5.1 workflow. It checks that every script parses and is ASCII-only; that every registry row matches the Act script's format with no value set twice; that Windows 11 rows appear only on Windows 11; that already-set values become `Keep`; and that the keep-list apps (Calculator, Store, App Installer and so on) are never offered for removal.
 - **On Windows 11 Pro (GMKtec G10, Nov 2026):** the full cycle on a fresh install. 105 of 107 actions succeeded; the two Widgets/News policy writes Windows refused led to v1.1.1.
 

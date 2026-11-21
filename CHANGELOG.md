@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.0 - 2026-11-21
+
+### Added
+- **`ShackCleanup-NetCapture.ps1`:** checks on the wire that the cleanup worked. For a set time (default 4 hours) it records every outbound connection via Windows Filtering Platform auditing (event 5156), and every name looked up via the DNS Client log. Each connection is tied to its program, and `svchost` connections to the services in that process, for example `svchost (DiagTrack)`. Destinations are classified as Should be gone (Copilot, News/Bing/Widgets/ads, Office/OneDrive/Teams, activity history), Review, Expected (Required telemetry, Windows Update/Defender/Store, certificate checks, time, connectivity check, Edge updates, winget/GitHub) or LAN (including Tailscale). It also flags programs that shouldn't be running at all, such as OneDrive, Widgets, Phone Link, `CompatTelRunner` and `DeviceCensus`. Auditing, the Security log size and the DNS log setting are restored afterwards, including after Ctrl+C. `-NoConnectionAudit` samples TCP connections instead. See [docs/network-capture.md](docs/network-capture.md).
+- Tests: 26 destination-classification cases, including MSN from Edge versus anything else. The case list is built so it can't flatten (the v1.0.1 bug, which turned up again while writing these tests).
+
 ## 1.1.3 - 2026-11-18
 
 ### Added: more Copilot removal

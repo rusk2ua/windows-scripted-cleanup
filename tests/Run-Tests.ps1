@@ -152,6 +152,45 @@ $result = & $tmp
 Remove-Item $tmp -ErrorAction SilentlyContinue
 Assert-True ("$result" -like 'CHECK: Windows blocks scripts*') "UnauthorizedAccessException is logged as CHECK with an explanation (got: $result)"
 
+Write-Host 'NetCapture: destination classification'
+$nc = Get-Content (Join-Path $root 'ShackCleanup-NetCapture.ps1') -Raw
+Invoke-Expression (Get-Section $nc '# ---------------------------------------------------------------- host classification (tested)' '# ---------------------------------------------------------------- end host classification')
+$cases = @(
+    @{ H = 'v10.events.data.microsoft.com'; I = '20.42.65.90'; V = 'Expected'; C = 'Telemetry (Required level)' }
+    @{ H = 'us-v10c.events.data.microsoft.com'; I = '20.42.65.90'; V = 'Expected'; C = 'Telemetry (Required level)' }
+    @{ H = 'self.events.data.microsoft.com'; I = '13.89.178.26'; V = 'Review'; C = 'Telemetry (other)' }
+    @{ H = 'activity.windows.com'; I = '40.1.1.1'; V = 'Should be gone'; C = 'Activity history' }
+    @{ H = 'ntp.msn.com'; I = '13.107.1.1'; V = 'Should be gone'; C = 'News, Bing, Widgets, ads' }
+    @{ H = 'www.bing.com'; I = '13.107.1.1'; V = 'Should be gone'; C = 'News, Bing, Widgets, ads' }
+    @{ H = 'copilot.microsoft.com'; I = '13.107.1.1'; V = 'Should be gone'; C = 'Copilot' }
+    @{ H = 'oneclient.sfx.ms.onedrive.com'; I = '13.107.1.1'; V = 'Should be gone'; C = 'Office / OneDrive / Teams' }
+    @{ H = 'login.live.com'; I = '20.190.1.1'; V = 'Review'; C = 'Microsoft account sign-in' }
+    @{ H = 'fe3cr.delivery.mp.microsoft.com'; I = '20.1.1.1'; V = 'Expected'; C = 'Windows Update, Defender, Store' }
+    @{ H = 'wdcp.microsoft.com'; I = '20.1.1.1'; V = 'Expected'; C = 'Windows Update, Defender, Store' }
+    @{ H = 'www.msftconnecttest.com'; I = '13.107.4.52'; V = 'Expected'; C = 'Network connectivity check' }
+    @{ H = 'time.windows.com'; I = '168.61.215.74'; V = 'Expected'; C = 'Time sync' }
+    @{ H = '0.pool.ntp.org'; I = '1.2.3.4'; V = 'Expected'; C = 'Time sync' }
+    @{ H = 'oneocsp.microsoft.com'; I = '1.2.3.4'; V = 'Expected'; C = 'Certificate checks' }
+    @{ H = 'edge.microsoft.com'; I = '1.2.3.4'; V = 'Expected'; C = 'Edge (updates, config)' }
+    @{ H = 'github.com'; I = '140.82.112.3'; V = 'Expected'; C = 'winget / GitHub / PowerShell Gallery' }
+    @{ H = 'arc.msn.com'; I = '1.2.3.4'; V = 'Should be gone'; C = 'News, Bing, Widgets, ads' }
+    @{ H = 'login.microsoftonline.com'; I = '1.2.3.4'; V = 'Review'; C = 'Microsoft account sign-in' }
+    @{ H = 'www.microsoft.com'; I = '1.2.3.4'; V = 'Review'; C = 'Microsoft (other)' }
+    @{ H = 'relay.anydesk.com'; I = '1.2.3.4'; V = 'Review'; C = 'Third party' }
+    @{ H = ''; I = '52.1.1.1'; V = 'Review'; C = 'No DNS name' }
+    @{ H = 'nas.local'; I = '192.168.1.20'; V = 'LAN'; C = 'LAN / local' }
+    @{ H = ''; I = '100.101.102.103'; V = 'LAN'; C = 'LAN / local' }
+)
+Assert-True ($cases.Count -eq 24) "24 classification cases (not flattened: $($cases.Count))"
+$r = Get-HostCategory -HostName 'ntp.msn.com' -Ip '13.107.1.1' -Process 'msedge'
+Assert-True ($r.Verdict -eq 'Review') "MSN from Edge itself is Review, not Should be gone (got $($r.Verdict))"
+$r = Get-HostCategory -HostName 'ntp.msn.com' -Ip '13.107.1.1' -Process 'svchost'
+Assert-True ($r.Verdict -eq 'Should be gone') "MSN from anything else is Should be gone (got $($r.Verdict))"
+foreach ($c in $cases) {
+    $r = Get-HostCategory -HostName $c.H -Ip $c.I
+    Assert-True ($r.Verdict -eq $c.V -and $r.Category -eq $c.C) "classify '$($c.H)' $($c.I) -> $($c.V) / $($c.C) (got $($r.Verdict) / $($r.Category))"
+}
+
 Write-Host ''
 Write-Host "Passed $script:Pass, failed $script:Fail"
 if ($script:Fail -gt 0) { exit 1 }
