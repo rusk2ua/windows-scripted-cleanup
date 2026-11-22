@@ -88,6 +88,7 @@ function ConvertTo-HexString { param([byte[]]$Bytes) ($Bytes | ForEach-Object { 
 
 function Get-RegState {
     param($Path, $Name)
+    if (-not (Test-Path -Path $Path)) { return @{ Exists = $false; Kind = ''; Value = '<absent>' } }   # avoids a caught-but-logged error in the transcript
     try {
         $item = Get-Item -Path $Path -ErrorAction Stop
         if ($item.GetValueNames() -notcontains $Name) { return @{ Exists = $false; Kind = ''; Value = '<absent>' } }
@@ -405,6 +406,7 @@ if ($wgRemove.Count + $wgUpdate.Count -gt 0) {
             '-1978335226' = 'the package installer itself failed (its exit code is printed above; 1223 = cancelled, usually because the app is running - quit it from the system tray and retry)'
             '-1978335189' = 'no applicable upgrade found (already current, or installed version unknown)'
             '-2147012889' = 'network/DNS error reaching the package source - retry later'
+            '-2147023673' = 'installer cancelled itself, usually because the app is in use (for Git: close VS Code, Git Bash and stray git processes) - retry'
         }
         function Invoke-WingetRow {
             param($Row, [ValidateSet('upgrade', 'uninstall')]$Verb)

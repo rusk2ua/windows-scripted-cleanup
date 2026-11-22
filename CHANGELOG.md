@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.3 - 2026-11-21
+
+### Fixed
+- **Act:** winget exit `0x800704C7` (installer cancelled because the app was in use; Git on the G10) now gets a plain-English hint in `ChangeLog.csv`.
+- **Act:** checking a registry key that doesn't exist yet no longer leaves a misleading `TerminatingError(Get-Item)` line in the transcript.
+
 ## 1.2.2 - 2026-11-21
 
 ### Added
