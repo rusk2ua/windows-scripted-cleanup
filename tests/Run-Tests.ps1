@@ -130,6 +130,21 @@ Assert-True (($Findings | Where-Object Name -eq 'Microsoft.ZuneMusic').Action -e
 Assert-True (($appx | Where-Object { $_.N -eq 'Microsoft.Edge.GameAssist' }).R -eq 'Review') 'Edge Game Assist is Review (Edge reinstalls it) (v1.1.2)'
 Assert-True (($appx | Where-Object { $_.N -eq 'Microsoft.StartExperiencesApp' }).R -eq 'Remove') 'Start feed package (MicrosoftStartFeedProvider) is Remove (v1.2.2)'
 
+Write-Host 'Report: tasks running CompatTelRunner are Telemetry/Disable (v1.2.4)'
+Invoke-Expression (Get-Section $src '$StationPattern =' '# ---------------------------------------------------------------- 1. hardware')
+$Findings.Clear(); $script:NextId = 1
+function Get-ScheduledTask { @(
+    [pscustomobject]@{ TaskPath = '\Microsoft\Windows\Application Experience\'; TaskName = 'Microsoft Compatibility Appraiser Exp'; State = 'Ready'
+                       Actions = @([pscustomobject]@{ Execute = '%windir%\system32\compattelrunner.exe'; Arguments = '-m:appraiser.dll'; ClassId = $null }) }
+    [pscustomobject]@{ TaskPath = '\Microsoft\Windows\Defrag\'; TaskName = 'ScheduledDefrag'; State = 'Ready'
+                       Actions = @([pscustomobject]@{ Execute = '%windir%\system32\defrag.exe'; Arguments = '-c'; ClassId = $null }) }
+) }
+Invoke-Expression (Get-Section $src '# ---------------------------------------------------------------- 4. scheduled tasks' '# ---------------------------------------------------------------- 5. services')
+$ct = @($Findings | Where-Object Name -like '*Appraiser Exp')
+Assert-True ($ct.Count -eq 1 -and $ct[0].Category -eq 'Telemetry' -and $ct[0].Action -eq 'Disable') "a task running CompatTelRunner (any name) is Telemetry / Disable (got: $(@($ct | ForEach-Object { $_.Category + '/' + $_.Action }) -join ','))"
+Assert-True (@($Findings | Where-Object Name -like '*Defrag*').Count -eq 0) 'other stock Windows tasks are still not listed'
+Remove-Item Function:\Get-ScheduledTask
+
 Write-Host 'Act: a protected registry value is CHECK, not FAILED'
 $act = Get-Content (Join-Path $root 'ShackCleanup-Act.ps1') -Raw
 $tmp = Join-Path ([IO.Path]::GetTempPath()) 'shackcleanup-act-test.ps1'
@@ -190,6 +205,16 @@ Assert-True (@(Get-DnsResultIps '20.1.2.3;20.1.2.3;').Count -eq 1) 'DNS answer p
 Assert-True (@($ips | Where-Object { $_ -like '*events*' }).Count -eq 0) 'DNS answer parsing ignores names'
 $r = Get-HostCategory -HostName '' -Ip '23.221.227.111' -Process 'MicrosoftStartFeedProvider'
 Assert-True ($r.Verdict -eq 'Should be gone') "a removed component is Should be gone whatever it contacts (got $($r.Verdict))"
+foreach ($t in @(
+    @{ H = 'config.edge.skype.com'; P = 'msedgewebview2'; S = ''; C = 'Edge (updates, config)'; V = 'Expected' }
+    @{ H = 'ecs.office.com'; P = 'MpDefenderCoreService'; S = 'MDCoreSvc'; C = 'Microsoft config service (ECS)'; V = 'Review' }
+    @{ H = 'client.wns.windows.com'; P = 'svchost'; S = 'WpnService'; C = 'Push notifications'; V = 'Expected' }
+    @{ H = ''; P = 'svchost'; S = 'Dnscache'; C = 'DNS lookups'; V = 'Expected' }
+    @{ H = 'teams.microsoft.com'; P = 'svchost'; S = 'Dnscache,Other'; C = 'Office / OneDrive / Teams'; V = 'Should be gone' }
+)) {
+    $r = Get-HostCategory -HostName $t.H -Ip '52.1.1.1' -Process $t.P -Services $t.S
+    Assert-True ($r.Category -eq $t.C -and $r.Verdict -eq $t.V) "v1.2.4 classify '$($t.H)' from $($t.P) ($($t.S)) -> $($t.V) / $($t.C) (got $($r.Verdict) / $($r.Category))"
+}
 $r = Get-HostCategory -HostName 'www.google.com' -Ip '142.250.31.103' -Process 'nordsec-threatprotection-service'
 Assert-True ($r.Category -eq 'Relayed by NordVPN Threat Protection') "Threat Protection relays are labelled as such (got $($r.Category))"
 $r = Get-HostCategory -HostName 'ntp.msn.com' -Ip '13.107.1.1' -Process 'msedge'

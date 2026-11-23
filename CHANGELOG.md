@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.2.4 - 2026-11-22
+
+From the second G10 capture, the first with working names (1,105 of 1,186 destinations named):
+
+### Fixed (NetCapture classification)
+- `config.edge.skype.com` is Edge/WebView2 configuration, not Skype. It's now Expected; it had been caught by the Office rule.
+- `ecs.office.com` is Microsoft's shared settings/experiment service, used by Defender and Edge. It's now Review with an explanation, rather than "Office should be gone".
+- `client.wns.windows.com` (push notifications) is now Expected.
+- The Windows DNS client (`svchost (Dnscache)`) talking to your DNS servers is now "DNS lookups", Expected.
+
+### Added
+- **Report:** any scheduled task that runs `CompatTelRunner` or `DeviceCensus` is set to Disable, whatever it's called. Windows 11 runs CompatTelRunner from tasks that aren't on the fixed list; the capture caught it.
+- **Report / Edge:** `NewTabPageHideDefaultTopSites = 1` removes the sponsored and default tiles (Booking.com, eBay, MSN, Microsoft 365, Outlook) from the new tab page, and `PromotionalTabsEnabled = 0` stops full-page promo tabs.
+
 ## 1.2.3 - 2026-11-21
 
 ### Fixed

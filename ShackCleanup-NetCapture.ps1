@@ -45,6 +45,9 @@ $HostRules = @(
     @{ P = '(^|\.)activity\.windows\.com$';                                                     C = 'Activity history';                          V = 'Should be gone'; N = 'Activity history upload is turned off by policy' }
     @{ P = 'events\.data\.microsoft\.com$|vortex|telecommand|telemetry|\.aria\.microsoft\.com$|dmd\.metaservices|browser\.events\.data\.msn'; C = 'Telemetry (other)'; V = 'Review'; N = 'Check the process: Edge sends some at its Required level; anything else is worth a look' }
     @{ P = '(^|\.)(msn\.com|bing\.com|bing\.net|msftstatic\.com|iris\.microsoft\.com)$|tile-service\.weather|(^|\.)weather\.microsoft\.com$'; C = 'News, Bing, Widgets, ads'; V = 'Should be gone'; N = 'Widgets, News, Bing search and Start ads were removed - unless the process is msedge (Edge start page)' }
+    @{ P = '(^|\.)config\.edge\.skype\.com$';                                                C = 'Edge (updates, config)';                    V = 'Expected';       N = 'Edge and WebView2 fetch their settings here (an old Skype hostname, not Skype)' }
+    @{ P = '(^|\.)ecs\.office\.com$';                                                         C = 'Microsoft config service (ECS)';            V = 'Review';         N = 'Shared settings/experiment service used by Defender, Edge and others - not a sign Office is installed' }
+    @{ P = '(^|\.)(wns\.windows\.com|notify\.windows\.com)$';                                C = 'Push notifications';                        V = 'Expected';       N = 'Windows push notification channel used by apps and Store updates' }
     @{ P = '(^|\.)(office\.com|office\.net|officeapps\.live\.com|onedrive\.com|onedrive\.live\.com|sharepoint\.com|skype\.com|teams\.microsoft\.com|teams\.live\.com|outlook\.com|outlook\.office365\.com)$'; C = 'Office / OneDrive / Teams'; V = 'Should be gone'; N = 'Office 365, OneDrive and Teams were removed' }
     @{ P = '(^|\.)(login\.live\.com|account\.live\.com|login\.microsoftonline\.com|msauth\.net|msftauth\.net|live\.com|live\.net)$'; C = 'Microsoft account sign-in'; V = 'Review'; N = 'You use a local account; the Store and Edge may still check in here' }
     @{ P = '(^|\.)(windowsupdate\.com|update\.microsoft\.com|delivery\.mp\.microsoft\.com|wdcp\.microsoft\.com|wdcpalt\.microsoft\.com|wd\.microsoft\.com|smartscreen\.microsoft\.com|smartscreen-prod\.microsoft\.com|checkappexec\.microsoft\.com|urs\.microsoft\.com|definitionupdates\.microsoft\.com|displaycatalog\.mp\.microsoft\.com|storeedgefd\.dsx\.mp\.microsoft\.com|storecatalogrevocation\.storequality\.microsoft\.com|tsfe\.trafficshaping\.dsp\.mp\.microsoft\.com)$'; C = 'Windows Update, Defender, Store'; V = 'Expected'; N = 'Security and update traffic - keep it' }
@@ -63,12 +66,15 @@ function Get-DnsResultIps {
     return @($ips | Where-Object { $_ } | Select-Object -Unique)
 }
 function Get-HostCategory {
-    param([string]$HostName, [string]$Ip, [string]$Process)
+    param([string]$HostName, [string]$Ip, [string]$Process, [string]$Services)
     if ($Process -and ($ShouldBeGoneProcesses -contains $Process)) {
         return [pscustomobject]@{ Category = 'Removed component'; Verdict = 'Should be gone'; Note = "$Process should not be running after the cleanup - whatever it contacts" }
     }
     if ($Process -match '^nordsec-threatprotection') {
         return [pscustomobject]@{ Category = 'Relayed by NordVPN Threat Protection'; Verdict = 'Review'; Note = 'Threat Protection relays web traffic for other programs, hiding which program it was - pause it during the capture for clean attribution' }
+    }
+    if ($Services -match '(^|,)Dnscache(,|$)' -and -not $HostName) {
+        return [pscustomobject]@{ Category = 'DNS lookups'; Verdict = 'Expected'; Note = 'The Windows DNS client asking your DNS servers (here NordVPN''s) for names' }
     }
     if ($Ip -and $Ip -match $PrivatePattern) { return [pscustomobject]@{ Category = 'LAN / local'; Verdict = 'LAN'; Note = 'Stays on your network' } }
     $h = "$HostName".Trim().TrimEnd('.').ToLowerInvariant()
@@ -278,7 +284,7 @@ finally {
 
     $rows = foreach ($c in $conns) {
         $hn = if ($ipName.ContainsKey($c.DestIP)) { $ipName[$c.DestIP] } else { '' }
-        $cat = Get-HostCategory -HostName $hn -Ip $c.DestIP -Process $c.Process
+        $cat = Get-HostCategory -HostName $hn -Ip $c.DestIP -Process $c.Process -Services $c.Services
         $who = if ($c.Services) { "$($c.Process) ($($c.Services))" } else { $c.Process }
         $co = Get-CompanyName $c.Path
         [pscustomobject]@{

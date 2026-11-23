@@ -109,6 +109,8 @@ installed and updating, and quiet it with `HKLM\SOFTWARE\Policies\Microsoft\Edge
 | `DiagnosticData` (required only) | 1 |
 | `NewTabPageContentEnabled` (MSN feed) | 0 |
 | `EdgeFollowEnabled` | 0 |
+| `NewTabPageHideDefaultTopSites` (sponsored and default tiles) | 1 |
+| `PromotionalTabsEnabled` | 0 |
 
 Edge will show "Your browser is managed by your organization" afterward. That's expected: it's how Edge
 reports that policies are set.

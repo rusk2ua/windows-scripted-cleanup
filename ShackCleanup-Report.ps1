@@ -306,6 +306,11 @@ foreach ($t in Get-ScheduledTask -ErrorAction SilentlyContinue) {
             -Company 'Microsoft' -State $t.State -Flag 'PhonesHome' -Recommendation 'Disable' -Note 'Windows CEIP/compatibility telemetry - not needed for Required-level diagnostics'
         continue
     }
+    if ($cmd -match '(?i)compattelrunner|devicecensus') {
+        Add-Finding -Category 'Telemetry' -Type 'ScheduledTask' -Name $full -Location $t.TaskPath -ItemName $t.TaskName -Detail $cmd `
+            -Company 'Microsoft' -State $t.State -Flag 'PhonesHome' -Recommendation 'Disable' -Note 'Runs the compatibility/device-census telemetry tools (CompatTelRunner, DeviceCensus) - caught by the network capture on Windows 11'
+        continue
+    }
     $isOfficeTask = $t.TaskPath -like '\Microsoft\Office\*'
     if ($t.TaskPath -like '\Microsoft\*' -and -not $isOfficeTask) { continue }   # stock Windows tasks
 
@@ -575,6 +580,8 @@ if (Test-Path "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe") 
     Add-RegRow 'Edge' 'Edge: no browsing-based personalization'    "$edge|PersonalizationReportingEnabled|DWord|0" 'PhonesHome'
     Add-RegRow 'Edge' 'Edge: diagnostic data = required only'      "$edge|DiagnosticData|DWord|1" 'PhonesHome'
     Add-RegRow 'Edge' 'Edge: no news feed on the new tab page'     "$edge|NewTabPageContentEnabled|DWord|0" 'PhonesHome'
+    Add-RegRow 'Edge' 'Edge: no sponsored / default tiles on new tab' "$edge|NewTabPageHideDefaultTopSites|DWord|1" 'Nag' 'Removes the Booking.com, eBay, MSN, Microsoft 365 and Outlook tiles; shortcuts you add stay'
+    Add-RegRow 'Edge' 'Edge: no full-page promotional tabs'        "$edge|PromotionalTabsEnabled|DWord|0" 'Nag'
     Add-RegRow 'Edge' 'Edge: no "follow creators" feature'         "$edge|EdgeFollowEnabled|DWord|0" 'PhonesHome'
 }
 
